@@ -61,6 +61,7 @@ export const LanguageSelector: FC<Props> = ({
             <SelectItem value="en-GB">English (UK)</SelectItem>
             <SelectItem value="ja-JP">日本語</SelectItem>
             <SelectItem value="zh-CN">简体中文</SelectItem>
+            <SelectItem value="zh-TW">繁體中文</SelectItem>
             {loadLanguageFile !== undefined && (
               <>
                 <Separator className="my-2" />

@@ -38,6 +38,8 @@ pub enum LanguageCode {
     EnGb,
     #[serde(rename = "zh-CN")]
     ZhCn,
+    #[serde(rename = "zh-TW")]
+    ZhTw,
     #[serde(rename = "user-provided")]
     UserProvided(String),
 }
@@ -49,6 +51,7 @@ impl LanguageCode {
             LanguageCode::EnUs => "en-US",
             LanguageCode::EnGb => "en-GB",
             LanguageCode::ZhCn => "zh-CN",
+            LanguageCode::ZhTw => "zh-TW",
             LanguageCode::UserProvided(code) => code,
         }
     }
@@ -58,6 +61,7 @@ impl LanguageCode {
             LanguageCode::JaJp => "ja",
             LanguageCode::EnUs | LanguageCode::EnGb => "en",
             LanguageCode::ZhCn => "zh-cn",
+            LanguageCode::ZhTw => "zh-tw",
             LanguageCode::UserProvided(_) => "en",
         }
     }
@@ -93,6 +97,8 @@ impl PreferenceStore {
             "en-US" => LanguageCode::EnUs,
             "en-GB" => LanguageCode::EnGb,
             "zh-CN" => LanguageCode::ZhCn,
+            "zh-TW" | "zh-HK" | "zh-MO" => LanguageCode::ZhTw,
+            locale if locale.starts_with("zh-Hant") => LanguageCode::ZhTw,
             _ => LanguageCode::EnUs,
         };
 

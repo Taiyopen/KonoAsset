@@ -3,7 +3,7 @@ import { FC, useCallback, useContext } from 'react'
 import { PreferenceContext } from '@/components/context/PreferenceContext'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { CN, FlagComponent, GB, JP, US } from 'country-flag-icons/react/3x2'
+import { CN, FlagComponent, GB, JP, TW, US } from 'country-flag-icons/react/3x2'
 import { LanguageCode } from '@/lib/bindings'
 
 export const LanguageSelectArea: FC = () => {
@@ -49,6 +49,12 @@ export const LanguageSelectArea: FC = () => {
           active={preference.language === 'zh-CN'}
           Flag={CN}
           onClick={() => onLanguageChangeClicked('zh-CN')}
+        />
+        <LanguageSelector
+          language="繁體中文"
+          active={preference.language === 'zh-TW'}
+          Flag={TW}
+          onClick={() => onLanguageChangeClicked('zh-TW')}
         />
       </div>
     </div>

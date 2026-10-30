@@ -41,6 +41,9 @@ export const CubicLanguageSelector: FC<Props> = ({ onSelected }) => {
         <DropdownMenuItem onClick={() => onSelected('zh-CN')}>
           简体中文
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onSelected('zh-TW')}>
+          繁體中文
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
