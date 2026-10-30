@@ -52,11 +52,39 @@ fn get_reqwest_client<S: AsRef<str>>(version: S) -> Result<reqwest::Client, Stri
 
 #[cfg(test)]
 mod tests {
+    use model::preference::LanguageCode;
+
     use super::*;
 
     #[tokio::test]
     async fn test_changelog_json() {
         let text_changelog = include_str!("../../../../changelog.json");
         parse_changelog(text_changelog).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_changelog_json_has_zh_tw_translations() {
+        let text_changelog = include_str!("../../../../changelog.json");
+        let changelog = parse_changelog(text_changelog).await.unwrap();
+
+        for version in changelog {
+            let entries = version
+                .features
+                .iter()
+                .chain(version.fixes.iter())
+                .chain(version.others.iter());
+
+            for entry in entries {
+                assert!(
+                    entry
+                        .langs
+                        .iter()
+                        .any(|lang| lang.lang.is_language_supported(&LanguageCode::ZhTw)),
+                    "v{}: missing zh-TW translation for \"{}\"",
+                    version.version,
+                    entry.text
+                );
+            }
+        }
     }
 }
