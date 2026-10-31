@@ -105,11 +105,44 @@ impl JobBackend for TauriJobBackend {
     }
 }
 
-/// The downloaded files live in the job folder, so they are always deleted after the import.
+/// Sources are not deleted here: `import_asset` deletes them after registering the asset, so a
+/// locked file (antivirus, indexer) would fail an import that already succeeded and a retry
+/// would add a duplicate. The manager removes the whole job folder after a successful import.
 fn request<T: PreAsset>(pre_asset: T, absolute_paths: Vec<String>) -> AssetImportRequest<T> {
     AssetImportRequest {
         pre_asset,
         absolute_paths,
-        delete_source: true,
+        delete_source: false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use model::AssetDescription;
+
+    use super::*;
+    use crate::definitions::import_request::PreAvatar;
+
+    #[test]
+    fn request_keeps_sources_and_paths_in_order() {
+        let pre = PreAvatar {
+            description: AssetDescription {
+                name: "Test Avatar".to_string(),
+                creator: "Creator".to_string(),
+                image_filename: None,
+                tags: vec![],
+                memo: None,
+                booth_item_id: None,
+                dependencies: vec![],
+                created_at: 0,
+                published_at: None,
+            },
+        };
+        let paths = vec!["C:/dl/1/b.zip".to_string(), "C:/dl/2/a.zip".to_string()];
+
+        let request = request(pre, paths.clone());
+
+        assert!(!request.delete_source);
+        assert_eq!(request.absolute_paths, paths);
     }
 }
