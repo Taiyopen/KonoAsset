@@ -46,7 +46,10 @@ const notes = (() => {
 })()
 
 if (!buildOnly) {
-  if (output('git', ['status', '--porcelain', '--untracked-files=no']) !== '') {
+  // Line-ending-only differences (e.g. the generated routeTree.gen.ts) don't affect the build
+  if (
+    output('git', ['diff', 'HEAD', '--ignore-cr-at-eol', '--name-only']) !== ''
+  ) {
     throw new Error('Commit your changes before publishing')
   }
   run('git fetch -q origin main')
