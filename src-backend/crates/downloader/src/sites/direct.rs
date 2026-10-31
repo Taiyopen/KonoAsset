@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::error::DownloadError;
+use crate::http::redact_url;
 use crate::link::Job;
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -29,7 +30,7 @@ impl Site for Direct {
         let name = match head.name {
             Some(name) => name,
             None if head.is_html => {
-                return Err(DownloadError::NotAFile(format!("{} is a web page, not a file", item.id)));
+                return Err(DownloadError::NotAFile(format!("{} is a web page, not a file", redact_url(&item.id))));
             }
             None => name_from_url(&head.final_url).unwrap_or_else(|| "download".to_string()),
         };

@@ -12,7 +12,7 @@ use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use reqwest::StatusCode;
 
 use crate::error::DownloadError;
-use crate::http::{filename_from_headers, percent_decode, safe_name, save_stream, SaveOptions};
+use crate::http::{filename_from_headers, percent_decode, redact_url, safe_name, save_stream, SaveOptions};
 use crate::link::SiteKind;
 use crate::site::{FileProgress, Site};
 
@@ -32,13 +32,16 @@ pub fn create(kind: SiteKind) -> Box<dyn Site> {
 /// Maps the status of a header/API request to the matching error. `Ok` for success statuses.
 /// (`save_stream` itself only knows 404; everything else is `Retryable` there.)
 pub(crate) fn check_status(status: StatusCode, url: &str) -> Result<(), DownloadError> {
-    match status {
-        s if s.is_success() => Ok(()),
-        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Err(DownloadError::LoginRequired(url.to_string())),
-        StatusCode::NOT_FOUND | StatusCode::GONE => Err(DownloadError::NotFound(url.to_string())),
-        StatusCode::TOO_MANY_REQUESTS => Err(DownloadError::RateLimited(url.to_string())),
-        s => Err(DownloadError::Retryable(format!("HTTP {s} for {url}"))),
+    if status.is_success() {
+        return Ok(());
     }
+    let url = redact_url(url);
+    Err(match status {
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => DownloadError::LoginRequired(url),
+        StatusCode::NOT_FOUND | StatusCode::GONE => DownloadError::NotFound(url),
+        StatusCode::TOO_MANY_REQUESTS => DownloadError::RateLimited(url),
+        s => DownloadError::Retryable(format!("HTTP {s} for {url}")),
+    })
 }
 
 /// What the response headers of a file url say; the body is never read.
@@ -110,6 +113,8 @@ mod tests {
         assert!(matches!(check_status(StatusCode::GONE, "u"), Err(DownloadError::NotFound(_))));
         assert!(matches!(check_status(StatusCode::TOO_MANY_REQUESTS, "u"), Err(DownloadError::RateLimited(_))));
         assert!(check_status(StatusCode::BAD_GATEWAY, "u").unwrap_err().is_retryable());
+        let err = check_status(StatusCode::NOT_FOUND, "https://h/f?sig=secret").unwrap_err();
+        assert_eq!(err, DownloadError::NotFound("h/f".into()));
     }
 
     #[test]

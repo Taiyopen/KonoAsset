@@ -35,6 +35,14 @@ pub fn safe_name(name: &str) -> String {
     if trimmed.is_empty() { "unnamed".to_string() } else { trimmed.to_string() }
 }
 
+/// `host/path` of `url`, for logs and error messages: the query and fragment may hold tokens.
+pub(crate) fn redact_url(url: &str) -> String {
+    match reqwest::Url::parse(url) {
+        Ok(u) => format!("{}{}", u.host_str().unwrap_or(""), u.path()),
+        Err(_) => url.split(['?', '#']).next().unwrap_or_default().to_string(),
+    }
+}
+
 pub(crate) fn percent_decode(s: &str) -> String {
     fn hex(b: u8) -> Option<u8> {
         (b as char).to_digit(16).map(|d| d as u8)
@@ -159,10 +167,10 @@ pub async fn save_stream(
         }
     } else {
         if status == StatusCode::NOT_FOUND {
-            return Err(DownloadError::NotFound(url.to_string()));
+            return Err(DownloadError::NotFound(redact_url(url)));
         }
         if !status.is_success() {
-            return Err(DownloadError::Retryable(format!("HTTP {status} for {url}")));
+            return Err(DownloadError::Retryable(format!("HTTP {status} for {}", redact_url(url))));
         }
         if offset > 0 && status != StatusCode::PARTIAL_CONTENT {
             offset = 0; // the server ignored Range: start over
@@ -221,6 +229,26 @@ mod tests {
         assert_eq!(safe_name(" .hidden. "), "hidden");
         assert_eq!(safe_name("【11 Avatars】 Sweet Devil.zip"), "【11 Avatars】 Sweet Devil.zip");
         assert_eq!(safe_name("..."), "unnamed");
+    }
+
+    #[test]
+    fn redact_url_keeps_host_and_path_only() {
+        assert_eq!(redact_url("https://h.com/a/b.zip?sig=secret#frag"), "h.com/a/b.zip");
+        assert_eq!(redact_url("http://127.0.0.1:8080/x?token=1"), "127.0.0.1/x");
+        assert_eq!(redact_url("not a url?token=1"), "not a url");
+    }
+
+    #[tokio::test]
+    async fn errors_do_not_contain_the_query() {
+        let base = serve(vec![]).await;
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("f.bin");
+        let url = format!("{base}/nope?sig=secret");
+        let err = save_stream(&client(), &url, &target, opts(), &noop).await.unwrap_err();
+        assert!(!err.to_string().contains("secret"), "{err}");
+        // A connection error from reqwest names the url too.
+        let err = save_stream(&client(), "http://127.0.0.1:9/x?sig=secret", &target, opts(), &noop).await.unwrap_err();
+        assert!(!err.to_string().contains("secret"), "{err}");
     }
 
     #[test]

@@ -19,7 +19,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 use tokio::time::{timeout, timeout_at, Instant};
 
 use crate::error::DownloadError;
-use crate::http::{safe_name, save_stream, SaveOptions, USER_AGENT};
+use crate::http::{redact_url, safe_name, save_stream, SaveOptions, USER_AGENT};
 use crate::site::{Ctx, FileProgress};
 
 pub const REPORT_HOST: &str = "konoasset.invalid";
@@ -91,11 +91,6 @@ fn lock(state: &Mutex<NativeState>) -> MutexGuard<'_, NativeState> {
     state.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// `host/path` of a url, for logs (no query: it may hold tokens).
-fn short(url: &Url) -> String {
-    format!("{}{}", url.host_str().unwrap_or(""), url.path())
-}
-
 /// Whether `err` is the timeout of [`HiddenBrowser::wait_report`].
 pub(crate) fn is_report_timeout(err: &DownloadError) -> bool {
     matches!(err, DownloadError::Retryable(message) if message.starts_with(REPORT_TIMEOUT))
@@ -143,7 +138,7 @@ impl HiddenBrowser {
                     false
                 }
                 None => {
-                    log::debug!("[{nav_label}] navigating to {}", short(url));
+                    log::debug!("[{nav_label}] navigating to {}", redact_url(url.as_str()));
                     true
                 }
             })
@@ -151,7 +146,7 @@ impl HiddenBrowser {
                 DownloadEvent::Requested { url, destination } => {
                     let mut state = lock(&native_state);
                     if let Some(dest) = state.destination.take() {
-                        log::info!("[{dl_label}] native download of {} to {}", short(&url), dest.display());
+                        log::info!("[{dl_label}] native download of {} to {}", redact_url(url.as_str()), dest.display());
                         *destination = dest;
                         state.started = Some(url.clone());
                         let _ = native_tx.send(NativeEvent::Started(url));
@@ -176,7 +171,7 @@ impl HiddenBrowser {
                         log::info!("[{dl_label}] native download finished, success: {success}, path: {path:?}");
                         let _ = native_tx.send(NativeEvent::Finished { path, success });
                     } else {
-                        log::debug!("[{dl_label}] ignoring end of cancelled download {}", short(&url));
+                        log::debug!("[{dl_label}] ignoring end of cancelled download {}", redact_url(url.as_str()));
                     }
                     true
                 }
@@ -184,7 +179,7 @@ impl HiddenBrowser {
             })
             .build()
             .map_err(|e| DownloadError::Retryable(format!("cannot open browser window: {e}")))?;
-        log::info!("[{label}] hidden browser opened at {}", short(url));
+        log::info!("[{label}] hidden browser opened at {}", redact_url(url.as_str()));
 
         Ok(Self { window, reports, downloads, native_events, native })
     }
@@ -212,10 +207,10 @@ impl HiddenBrowser {
     /// Loads `url`. Reports and download requests of the previous page are discarded.
     pub fn navigate(&mut self, url: &Url) -> Result<(), DownloadError> {
         self.discard_pending();
-        log::debug!("[{}] navigate to {}", self.window.label(), short(url));
+        log::debug!("[{}] navigate to {}", self.window.label(), redact_url(url.as_str()));
         self.window
             .navigate(url.clone())
-            .map_err(|e| DownloadError::Retryable(format!("cannot navigate to {}: {e}", short(url))))
+            .map_err(|e| DownloadError::Retryable(format!("cannot navigate to {}: {e}", redact_url(url.as_str()))))
     }
 
     fn discard_pending(&mut self) {
@@ -223,7 +218,7 @@ impl HiddenBrowser {
             log::debug!("[{}] discarding stale report {}", self.window.label(), report.kind);
         }
         while let Ok(request) = self.downloads.try_recv() {
-            log::debug!("[{}] discarding stale download {}", self.window.label(), short(&request.url));
+            log::debug!("[{}] discarding stale download {}", self.window.label(), redact_url(request.url.as_str()));
         }
         while self.native_events.try_recv().is_ok() {}
     }
@@ -258,7 +253,7 @@ impl HiddenBrowser {
                 }
                 Ok(None) => return Err(DownloadError::Retryable("browser window closed".into())),
                 Err(_) => {
-                    let at = self.current_url().map(|u| short(&u)).unwrap_or_default();
+                    let at = self.current_url().map(|u| redact_url(u.as_str())).unwrap_or_default();
                     return Err(DownloadError::Retryable(format!(
                         "{REPORT_TIMEOUT}: no {kinds:?} within {}s (at {at})",
                         timeout.as_secs()
@@ -318,7 +313,7 @@ impl HiddenBrowser {
             tokio::select! {
                 event = self.native_events.recv() => match event {
                     Some(NativeEvent::Started(url)) => {
-                        log::info!("[{label}] native download started from {}", short(&url));
+                        log::info!("[{label}] native download started from {}", redact_url(url.as_str()));
                         started = true;
                         deadline = Instant::now() + NATIVE_TIMEOUT;
                     }

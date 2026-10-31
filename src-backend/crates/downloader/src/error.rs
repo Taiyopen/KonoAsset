@@ -53,9 +53,15 @@ impl DownloadError {
     }
 }
 
+/// The message names the url without its query (it may hold tokens).
 impl From<reqwest::Error> for DownloadError {
     fn from(e: reqwest::Error) -> Self {
-        DownloadError::Retryable(e.to_string())
+        let url = e.url().map(|u| crate::http::redact_url(u.as_str()));
+        let message = e.without_url().to_string();
+        DownloadError::Retryable(match url {
+            Some(url) => format!("{message} ({url})"),
+            None => message,
+        })
     }
 }
 

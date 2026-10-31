@@ -15,7 +15,7 @@ use regex::Regex;
 use reqwest::header::CONTENT_TYPE;
 
 use crate::error::DownloadError;
-use crate::http::{filename_from_headers, safe_name};
+use crate::http::{filename_from_headers, redact_url, safe_name};
 use crate::link::{Job, JobKind};
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -174,7 +174,7 @@ async fn send(client: &reqwest::Client, url: &str) -> Result<reqwest::Response, 
     let response = client.get(url).send().await?;
     check_status(response.status(), url)?;
     if is_login_url(response.url().as_str()) {
-        return Err(DownloadError::LoginRequired(format!("{url} needs a login or is not shared publicly")));
+        return Err(DownloadError::LoginRequired(format!("{} needs a login or is not shared publicly", redact_url(url))));
     }
     Ok(response)
 }

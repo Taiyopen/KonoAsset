@@ -12,6 +12,7 @@ use tauri::Url;
 
 use crate::browser::{require_app, save_download, HiddenBrowser, NativeFallback};
 use crate::error::DownloadError;
+use crate::http::redact_url;
 use crate::link::Job;
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -80,7 +81,8 @@ impl OneDrive {
         progress: FileProgress<'_>,
     ) -> Result<PathBuf, DownloadError> {
         let app = require_app(ctx)?;
-        let share = Url::parse(url).map_err(|e| DownloadError::Fatal(format!("bad OneDrive url {url}: {e}")))?;
+        let share =
+            Url::parse(url).map_err(|e| DownloadError::Fatal(format!("bad OneDrive url {}: {e}", redact_url(url))))?;
         let browser = HiddenBrowser::reuse_or_open(&mut self.browser, app, &share, INIT_JS).await?;
         let report = match browser.wait_report(BUTTON_TIMEOUT, &["clicked", "no-button"]).await {
             Ok(report) => report,
@@ -105,7 +107,7 @@ fn is_login(url: Option<Url>) -> bool {
 }
 
 fn login_required(url: &str) -> DownloadError {
-    DownloadError::LoginRequired(format!("{url} needs a login or is not shared publicly"))
+    DownloadError::LoginRequired(format!("{} needs a login or is not shared publicly", redact_url(url)))
 }
 
 fn is_sharepoint(url: &str) -> bool {
@@ -144,9 +146,7 @@ pub(crate) async fn download_sharepoint(
     let download_url = with_download_param(url);
     let head = probe(client, &download_url).await?;
     // Without a file name the server sent a login page instead of the file.
-    let name = head
-        .name
-        .ok_or_else(|| DownloadError::LoginRequired(format!("{url} needs a login or is not shared publicly")))?;
+    let name = head.name.ok_or_else(|| login_required(url))?;
     save_named(client, &head.final_url, &name, head.size, out_dir, progress, false).await
 }
 
