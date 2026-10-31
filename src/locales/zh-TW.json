@@ -114,6 +114,11 @@
     "addasset:get:error-toast:unknown-asset-type": "未知的素材類型。",
     "addasset:get:success-toast": "已更新素材資訊！",
     "addasset:update-asset": "更新素材",
+    "addasset:ai-suggest:error:invalid-api-key": "API 金鑰無效或沒有權限，請到設定確認",
+    "addasset:ai-suggest:error:insufficient-credit": "Claude API 額度不足",
+    "addasset:ai-suggest:error:rate-limited": "請求太頻繁，請稍後再試",
+    "addasset:ai-suggest:error:overloaded": "Claude 服務忙碌中，請稍後再試",
+    "addasset:ai-suggest:error:failed": "AI 判斷失敗，請手動填寫",
 
     "assetcard:open-button:show-dependency-warning-toast": "此素材有前置素材！",
     "assetcard:open-button:show-dependency-warning-toast:description": "可從「開啟」按鈕的下拉箭頭查看前置素材",

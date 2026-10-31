@@ -114,6 +114,11 @@
     "addasset:get:error-toast:unknown-asset-type": "不明なアセットタイプです。",
     "addasset:get:success-toast": "アセット情報を変更しました！",
     "addasset:update-asset": "アセットを更新",
+    "addasset:ai-suggest:error:invalid-api-key": "APIキーが無効か権限がありません。設定を確認してください",
+    "addasset:ai-suggest:error:insufficient-credit": "Claude APIのクレジットが不足しています",
+    "addasset:ai-suggest:error:rate-limited": "リクエストが多すぎます。しばらくしてから再試行してください",
+    "addasset:ai-suggest:error:overloaded": "Claudeが混雑しています。しばらくしてから再試行してください",
+    "addasset:ai-suggest:error:failed": "AIによる判定に失敗しました。手動で入力してください",
 
     "assetcard:open-button:show-dependency-warning-toast": "前提アセットがあります！",
     "assetcard:open-button:show-dependency-warning-toast:description": "開くボタンの下矢印から前提アセットを確認できます",

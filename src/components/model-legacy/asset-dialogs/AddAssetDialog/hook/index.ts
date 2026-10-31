@@ -22,6 +22,8 @@ import { useAssetSummaryViewStore } from '@/stores/AssetSummaryViewStore'
 import { useAssetFilterStore } from '@/stores/AssetFilterStore'
 import { useDragDropStore } from '@/stores/DragDropStore'
 import { DragDropHandler } from '@/stores/DragDropStore/index.types'
+import { useAiSuggest } from '../ai-suggest/hook'
+import { AiSuggestViewState } from '../ai-suggest/logic'
 
 type Props = {
   dialogOpen: boolean
@@ -44,6 +46,7 @@ type ReturnProps = {
   validatePaths: () => Promise<boolean>
   submit: (ignoreNonExistingPaths: boolean) => Promise<void>
   submitting: boolean
+  aiSuggest: AiSuggestViewState
 }
 
 export const useAddAssetDialog = ({
@@ -223,6 +226,8 @@ export const useAddAssetDialog = ({
 
     prevDialogOpenRef.current = dialogOpen
   }, [dialogOpen, clearForm, formClearSuppressionCount])
+
+  const aiSuggest = useAiSuggest({ form, tab, dialogOpen })
 
   const contextValue = {
     assetPaths,
@@ -418,5 +423,6 @@ export const useAddAssetDialog = ({
     validatePaths,
     submit,
     submitting,
+    aiSuggest,
   }
 }

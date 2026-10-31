@@ -114,6 +114,11 @@
     "addasset:get:error-toast:unknown-asset-type": "Unknown asset type.",
     "addasset:get:success-toast": "Asset information updated!",
     "addasset:update-asset": "Update asset",
+    "addasset:ai-suggest:error:invalid-api-key": "The API key is invalid or lacks permission. Please check your settings",
+    "addasset:ai-suggest:error:insufficient-credit": "Your Claude API credit balance is too low",
+    "addasset:ai-suggest:error:rate-limited": "Too many requests. Please try again later",
+    "addasset:ai-suggest:error:overloaded": "Claude is busy right now. Please try again later",
+    "addasset:ai-suggest:error:failed": "AI suggestion failed. Please fill in the fields manually",
 
     "assetcard:open-button:show-dependency-warning-toast": "There are prerequisite assets!",
     "assetcard:open-button:show-dependency-warning-toast:description": "You can check prerequisite assets from the downward arrow on the Open button.",

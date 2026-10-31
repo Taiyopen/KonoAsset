@@ -114,6 +114,11 @@
     "addasset:get:error-toast:unknown-asset-type": "未知资产类型。",
     "addasset:get:success-toast": "资产信息已更新！",
     "addasset:update-asset": "更新资产",
+    "addasset:ai-suggest:error:invalid-api-key": "API 密钥无效或没有权限，请到设置中确认",
+    "addasset:ai-suggest:error:insufficient-credit": "Claude API 额度不足",
+    "addasset:ai-suggest:error:rate-limited": "请求太频繁，请稍后再试",
+    "addasset:ai-suggest:error:overloaded": "Claude 服务繁忙，请稍后再试",
+    "addasset:ai-suggest:error:failed": "AI 判断失败，请手动填写",
 
     "assetcard:open-button:show-dependency-warning-toast": "存在前置资产！",
     "assetcard:open-button:show-dependency-warning-toast:description": "可通过打开按钮的下拉箭头查看前置资产",
