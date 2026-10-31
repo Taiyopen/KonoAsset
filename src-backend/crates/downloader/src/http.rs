@@ -35,7 +35,7 @@ pub fn safe_name(name: &str) -> String {
     if trimmed.is_empty() { "unnamed".to_string() } else { trimmed.to_string() }
 }
 
-fn percent_decode(s: &str) -> String {
+pub(crate) fn percent_decode(s: &str) -> String {
     fn hex(b: u8) -> Option<u8> {
         (b as char).to_digit(16).map(|d| d as u8)
     }

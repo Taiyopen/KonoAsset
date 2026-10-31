@@ -3,6 +3,7 @@ mod http;
 mod link;
 mod runner;
 mod site;
+pub mod sites;
 #[cfg(test)]
 pub(crate) mod test_server;
 
