@@ -99,8 +99,8 @@ export const SettingsTab: FC<Props> = ({ id }) => {
           }}
         />
         <AiSuggestSettings
-          enabled={preference.aiSuggestEnabled}
-          apiKey={preference.aiSuggestApiKey}
+          enabled={preference.aiSuggestEnabled ?? false}
+          apiKey={preference.aiSuggestApiKey ?? ''}
           setEnabled={async (enabled: boolean) => {
             await setPreference(
               { ...preference, aiSuggestEnabled: enabled },

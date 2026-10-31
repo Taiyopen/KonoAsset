@@ -44,8 +44,8 @@ export const useAiSuggest = ({ form, tab, dialogOpen }: Props): ReturnProps => {
   const { toast } = useToast()
   const { t } = useLocalization()
 
-  const enabled = preference.aiSuggestEnabled
-  const apiKey = preference.aiSuggestApiKey
+  const enabled = preference.aiSuggestEnabled ?? false
+  const apiKey = preference.aiSuggestApiKey ?? ''
 
   const reset = useCallback(() => {
     lastKeyRef.current = null
