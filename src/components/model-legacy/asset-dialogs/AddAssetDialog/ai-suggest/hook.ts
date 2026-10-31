@@ -3,7 +3,7 @@ import { useLocalization } from '@/hooks/use-localization'
 import { useToast } from '@/hooks/use-toast'
 import { commands } from '@/lib/bindings'
 import { AssetFormType } from '@/lib/form'
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import {
   AiFilledValues,
   AiNewValues,
@@ -24,11 +24,13 @@ type Props = {
   dialogOpen: boolean
 }
 
-export const useAiSuggest = ({
-  form,
-  tab,
-  dialogOpen,
-}: Props): AiSuggestViewState => {
+type ReturnProps = {
+  viewState: AiSuggestViewState
+  /** フォームを再設定するときに呼び、AI提案の状態と実行中のリクエストを破棄する */
+  reset: () => void
+}
+
+export const useAiSuggest = ({ form, tab, dialogOpen }: Props): ReturnProps => {
   const [loading, setLoading] = useState(false)
   const [newValues, setNewValues] = useState<AiNewValues>(EMPTY_AI_NEW_VALUES)
 
@@ -45,17 +47,18 @@ export const useAiSuggest = ({
   const enabled = preference.aiSuggestEnabled
   const apiKey = preference.aiSuggestApiKey
 
-  useEffect(() => {
-    if (!dialogOpen) {
-      return
-    }
-
+  const reset = useCallback(() => {
     lastKeyRef.current = null
     generationRef.current += 1
     filledRef.current = EMPTY_AI_FILLED
     setLoading(false)
     setNewValues(EMPTY_AI_NEW_VALUES)
-  }, [dialogOpen])
+  }, [])
+
+  // ダイアログの開閉時は状態を破棄する（閉じた後に届くレスポンスやトーストも破棄される）
+  useEffect(() => {
+    reset()
+  }, [dialogOpen, reset])
 
   useEffect(() => {
     if (!dialogOpen || tab !== 'manual-input') {
@@ -68,6 +71,7 @@ export const useAiSuggest = ({
       return
     }
 
+    // shouldRunAiSuggest で保証済みだが、型を絞り込むために必要
     if (boothItemId === null) {
       return
     }
@@ -84,6 +88,12 @@ export const useAiSuggest = ({
 
     setLoading(true)
 
+    const releaseKey = () => {
+      if (lastKeyRef.current === key) {
+        lastKeyRef.current = null
+      }
+    }
+
     const run = async () => {
       try {
         const result = await commands.suggestAssetFieldsWithAi(
@@ -98,10 +108,14 @@ export const useAiSuggest = ({
         setLoading(false)
 
         if (!isResponseForCurrentForm(key, form)) {
+          // 別の項目・種類に切り替わっているので破棄し、戻ってきたときに再実行できるようにする
+          releaseKey()
           return
         }
 
         if (result.status === 'error') {
+          releaseKey()
+
           const messageKey = errorMessageKey(result.error)
 
           if (messageKey !== null) {
@@ -122,6 +136,11 @@ export const useAiSuggest = ({
 
         if (generationRef.current === generation) {
           setLoading(false)
+          releaseKey()
+          toast({
+            title: t('addasset:ai-suggest:error:failed'),
+            duration: 5000,
+          })
         }
       }
     }
@@ -129,5 +148,5 @@ export const useAiSuggest = ({
     run()
   }, [dialogOpen, tab, form, enabled, apiKey, toast, t])
 
-  return { loading, newValues }
+  return { viewState: { loading, newValues }, reset }
 }

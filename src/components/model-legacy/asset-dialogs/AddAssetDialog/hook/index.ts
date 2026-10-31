@@ -129,6 +129,12 @@ export const useAddAssetDialog = ({
     },
   })
 
+  const { viewState: aiSuggest, reset: resetAiSuggest } = useAiSuggest({
+    form,
+    tab,
+    dialogOpen,
+  })
+
   const clearForm = useCallback(() => {
     form.reset({
       assetType: 'Avatar',
@@ -137,7 +143,8 @@ export const useAddAssetDialog = ({
 
     setAssetPaths([])
     setImageUrls([])
-  }, [form, defaultValues, setAssetPaths, setImageUrls])
+    resetAiSuggest()
+  }, [form, defaultValues, setAssetPaths, setImageUrls, resetAiSuggest])
 
   const openDialogWithoutClearForm = useCallback(() => {
     if (dialogOpen) {
@@ -226,8 +233,6 @@ export const useAddAssetDialog = ({
 
     prevDialogOpenRef.current = dialogOpen
   }, [dialogOpen, clearForm, formClearSuppressionCount])
-
-  const aiSuggest = useAiSuggest({ form, tab, dialogOpen })
 
   const contextValue = {
     assetPaths,
