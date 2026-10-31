@@ -378,8 +378,9 @@ pub(crate) fn should_fallback_native(err: &DownloadError) -> bool {
 }
 
 /// Saves a download the page requested to `out_dir/<safe suggested name>`: first with reqwest
-/// and the window's cookies, and when the server refuses that ([`should_fallback_native`]),
-/// natively as described by `native`. Returns right away when the file is already there.
+/// and the window's cookies (renamed to the server's file name when it sends one), and when the
+/// server refuses that ([`should_fallback_native`]), natively as described by `native`. Returns
+/// right away when the file is already there.
 pub(crate) async fn save_download(
     browser: &mut HiddenBrowser,
     http: &reqwest::Client,
@@ -422,9 +423,8 @@ pub(crate) async fn save_download(
             request.url.host_str().unwrap_or(""),
             cookie.split("; ").filter(|c| !c.is_empty()).count()
         );
-        let opts = SaveOptions { size: None, sha256: None, headers, reject_html: true };
-        match save_stream(http, request.url.as_str(), &target, opts, &|done, total| progress(&file_name, done, total)).await {
-            Ok(()) => return Ok(target),
+        match save_requested(http, request.url.as_str(), headers, out_dir, &file_name, progress).await {
+            Ok(path) => return Ok(path),
             Err(e) if should_fallback_native(&e) => {
                 log::info!("server refused the direct download of {file_name} ({e}), letting the browser download it");
             }
@@ -437,6 +437,29 @@ pub(crate) async fn save_download(
     progress(&file_name, 0, None);
     browser.native_download(native, &target).await?;
     Ok(target)
+}
+
+/// Saves `url` to `out_dir/<file_name>` with reqwest, then renames it to the name the server gives:
+/// WebView2's suggested name may be de-duplicated against the user's Downloads (`a (1).zip`).
+async fn save_requested(
+    http: &reqwest::Client,
+    url: &str,
+    headers: HeaderMap,
+    out_dir: &Path,
+    file_name: &str,
+    progress: FileProgress<'_>,
+) -> Result<PathBuf, DownloadError> {
+    let target = out_dir.join(file_name);
+    let opts = SaveOptions { size: None, sha256: None, headers, reject_html: true };
+    let header_name = save_stream(http, url, &target, opts, &|done, total| progress(file_name, done, total)).await?;
+    match header_name.map(|name| safe_name(&name)).filter(|name| name != file_name) {
+        Some(name) => {
+            let renamed = out_dir.join(name);
+            tokio::fs::rename(&target, &renamed).await?;
+            Ok(renamed)
+        }
+        None => Ok(target),
+    }
 }
 
 #[cfg(test)]
@@ -477,6 +500,26 @@ mod tests {
         ] {
             assert!(!should_fallback_native(&err), "{err:?}");
         }
+    }
+
+    #[tokio::test]
+    async fn saved_under_the_server_name_not_the_deduplicated_one() {
+        use crate::test_server::{serve, Route};
+        let mut named = Route::ok("/named", b"zip".to_vec());
+        named.headers.push(("Content-Disposition".into(), "attachment; filename=\"Kirke_.zip\"".into()));
+        let base = serve(vec![named, Route::ok("/plain", b"zip".to_vec())]).await;
+        let dir = tempfile::tempdir().unwrap();
+        let noop = |_: &str, _: u64, _: Option<u64>| {};
+        let save = |path: &str| {
+            let url = format!("{base}{path}");
+            let out_dir = dir.path().to_path_buf();
+            async move { save_requested(&crate::client(), &url, HeaderMap::new(), &out_dir, "Kirke_ (1).zip", &noop).await }
+        };
+
+        assert_eq!(save("/named").await.unwrap(), dir.path().join("Kirke_.zip"));
+        assert!(!dir.path().join("Kirke_ (1).zip").exists());
+        // Without a name from the server the suggested one stays.
+        assert_eq!(save("/plain").await.unwrap(), dir.path().join("Kirke_ (1).zip"));
     }
 
     #[test]

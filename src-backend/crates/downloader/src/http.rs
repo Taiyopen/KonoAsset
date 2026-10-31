@@ -121,14 +121,15 @@ async fn sha256_of(path: &Path) -> std::io::Result<String> {
 }
 
 /// Streams `url` into `<target>.part`, resuming an existing `.part` with a `Range` request, then
-/// verifies the size / SHA-256 and renames to `target`.
+/// verifies the size / SHA-256 and renames to `target`. Returns the file name the response's
+/// `Content-Disposition` gives, if any.
 pub async fn save_stream(
     client: &reqwest::Client,
     url: &str,
     target: &Path,
     opts: SaveOptions<'_>,
     progress: ProgressFn<'_>,
-) -> Result<(), DownloadError> {
+) -> Result<Option<String>, DownloadError> {
     let part = part_path(target);
     let mut offset = match tokio::fs::metadata(&part).await {
         Ok(m) => m.len(),
@@ -141,6 +142,7 @@ pub async fn save_stream(
     }
     let mut response = request.send().await?;
     let status = response.status();
+    let header_name = filename_from_headers(response.headers());
 
     if opts.reject_html {
         let is_html = response
@@ -213,7 +215,7 @@ pub async fn save_stream(
         }
     }
     tokio::fs::rename(&part, target).await?;
-    Ok(())
+    Ok(header_name)
 }
 
 #[cfg(test)]
