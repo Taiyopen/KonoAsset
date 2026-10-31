@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use tokio::io::AsyncWriteExt;
 use tokio::time::{Instant, sleep};
 
 use crate::error::DownloadError;
@@ -71,10 +72,31 @@ fn subdir_path(subdir: &str) -> PathBuf {
         .collect()
 }
 
+/// Appends `item_id` and `path` to the line's marker so a retry can skip the file. The marker sits
+/// at the job root, which is never imported.
+async fn mark_done(marker: &Path, out_dir: &Path, item_id: &str, path: &Path) {
+    let Ok(relative) = path.strip_prefix(out_dir) else {
+        return;
+    };
+    let record = format!("{item_id}\t{}\n", relative.display());
+    let written = async {
+        let mut file = tokio::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(marker)
+            .await?;
+        file.write_all(record.as_bytes()).await
+    };
+    if let Err(e) = written.await {
+        log::warn!("cannot record {} as downloaded: {e}", path.display());
+    }
+}
+
 /// Lists and downloads every line into `out_dir/<line_number>/[<folder>/][<subdir>/]`.
 ///
 /// Returns the paths to import (deduplicated, in order): the folder for folder jobs,
-/// the file for single file jobs. Stops at the first line that fails for good.
+/// the file for single file jobs. Stops at the first line that fails for good. Files an earlier
+/// run over the same `out_dir` downloaded are not requested again.
 pub async fn download_all(
     ctx: &Ctx,
     factory: &SiteFactory,
@@ -118,6 +140,9 @@ pub async fn download_all(
         let site = sites
             .get_mut(&entry.site)
             .expect("site was created while listing");
+        // Files a previous run of this job already downloaded: `<item id>\t<path below out_dir>`.
+        let marker = out_dir.join(format!("{}.done", entry.line_number));
+        let done = tokio::fs::read_to_string(&marker).await.unwrap_or_default();
         let mut downloaded_any = false;
 
         for item in &entry.items {
@@ -126,43 +151,54 @@ pub async fn download_all(
                 line_number: entry.line_number,
                 error,
             };
-
-            if let Some(done_at) = last_done.get(&entry.site) {
-                sleep((*done_at + site.delay()).saturating_duration_since(Instant::now())).await;
-            }
-
             let target_dir = base_dir.join(subdir_path(&item.subdir));
-            tokio::fs::create_dir_all(&target_dir)
-                .await
-                .map_err(|e| line_error(e.into()))?;
 
-            let label = item.name.clone().unwrap_or_else(|| item.id.clone());
-            let report = |downloaded: u64, total: Option<u64>| {
-                progress(Progress {
-                    filename: label.clone(),
-                    file_index,
-                    file_count,
-                    downloaded,
-                    total,
-                })
+            let already_done = done
+                .lines()
+                .filter_map(|l| l.split_once('\t'))
+                .map(|(id, path)| (id, out_dir.join(path)))
+                .find(|(id, path)| *id == item.id && path.parent() == Some(&*target_dir))
+                .map(|(_, path)| path)
+                .filter(|path| path.is_file());
+            let path = match already_done {
+                Some(path) => path,
+                None => {
+                    if let Some(done_at) = last_done.get(&entry.site) {
+                        sleep((*done_at + site.delay()).saturating_duration_since(Instant::now()))
+                            .await;
+                    }
+                    tokio::fs::create_dir_all(&target_dir)
+                        .await
+                        .map_err(|e| line_error(e.into()))?;
+
+                    let label = item.name.clone().unwrap_or_else(|| item.id.clone());
+                    progress(Progress {
+                        filename: label,
+                        file_index,
+                        file_count,
+                        downloaded: 0,
+                        total: None,
+                    });
+                    let file_progress = |name: &str, downloaded: u64, total: Option<u64>| {
+                        progress(Progress {
+                            filename: name.to_string(),
+                            file_index,
+                            file_count,
+                            downloaded,
+                            total,
+                        })
+                    };
+
+                    let path = with_retry!(site.as_mut(), |s| {
+                        s.download(ctx, item, &entry.password, &target_dir, &file_progress)
+                    })
+                    .map_err(line_error)?;
+                    last_done.insert(entry.site, Instant::now());
+                    mark_done(&marker, out_dir, &item.id, &path).await;
+                    path
+                }
             };
-            report(0, None);
-            let file_progress = |name: &str, downloaded: u64, total: Option<u64>| {
-                progress(Progress {
-                    filename: name.to_string(),
-                    file_index,
-                    file_count,
-                    downloaded,
-                    total,
-                })
-            };
 
-            let path = with_retry!(site.as_mut(), |s| {
-                s.download(ctx, item, &entry.password, &target_dir, &file_progress)
-            })
-            .map_err(line_error)?;
-
-            last_done.insert(entry.site, Instant::now());
             downloaded_any = true;
             if entry.folder.is_none() && !results.contains(&path) {
                 results.push(path);
@@ -496,6 +532,35 @@ mod tests {
         .unwrap();
 
         assert_eq!(started.elapsed(), Duration::from_secs(20));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn rerun_downloads_only_missing_files_without_delays() {
+        let (shared, factory) = setup(Duration::from_secs(10));
+        shared.lock().unwrap().listings.insert(
+            "pack-id".into(),
+            (
+                Some("pack".into()),
+                vec![file("a.zip", ""), file("b.zip", ""), file("c.zip", "sub")],
+            ),
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let lines = [line(1, JobKind::Folder, "pack-id")];
+        let first = download_all(&ctx(), &factory, &lines, dir.path(), &no_progress)
+            .await
+            .unwrap();
+        assert_eq!(shared.lock().unwrap().download_calls, 3);
+        std::fs::remove_file(dir.path().join("1/pack/b.zip")).unwrap();
+        let started = Instant::now();
+
+        let second = download_all(&ctx(), &factory, &lines, dir.path(), &no_progress)
+            .await
+            .unwrap();
+
+        assert_eq!(second, first);
+        assert_eq!(shared.lock().unwrap().download_calls, 4, "only b.zip again");
+        assert!(dir.path().join("1/pack/b.zip").is_file());
+        assert_eq!(started.elapsed(), Duration::ZERO, "skipped files do not wait");
     }
 
     #[tokio::test(start_paused = true)]

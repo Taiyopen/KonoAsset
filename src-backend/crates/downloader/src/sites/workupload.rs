@@ -12,7 +12,6 @@ use tauri::Url;
 
 use crate::browser::{is_report_timeout, require_app, save_download, HiddenBrowser, NativeFallback, Report};
 use crate::error::DownloadError;
-use crate::http::safe_name;
 use crate::link::{Job, JobKind};
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -136,16 +135,8 @@ impl Site for Workupload {
         out_dir: &Path,
         progress: FileProgress<'_>,
     ) -> Result<PathBuf, DownloadError> {
-        let report = self.open_unlocked(ctx, &page_url("file", &item.id)?, password).await?;
-        let title = report.str("title").trim();
-        if !title.is_empty() && title != "workupload" {
-            let existing = out_dir.join(safe_name(title));
-            if tokio::fs::try_exists(&existing).await.unwrap_or(false) {
-                log::info!("workupload: {} already exists, skipping", existing.display());
-                return Ok(existing);
-            }
-        }
-
+        // Files a previous run downloaded are skipped by the runner before this page is loaded.
+        self.open_unlocked(ctx, &page_url("file", &item.id)?, password).await?;
         let browser = self.browser.as_mut().ok_or_else(|| DownloadError::Retryable("browser window closed".into()))?;
         let start = page_url("start", &item.id)?;
         browser.navigate(&start)?;
