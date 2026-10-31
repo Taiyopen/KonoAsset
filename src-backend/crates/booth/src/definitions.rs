@@ -12,6 +12,18 @@ pub struct BoothAssetInfo {
     pub estimated_asset_type: Option<AssetType>,
 }
 
+/// BOOTH 商品的詳細資料（供 AI 建議欄位使用，不會傳給前端）
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BoothItemDetail {
+    pub name: String,
+    pub shop_name: String,
+    pub category_name: Option<String>,
+    pub description: String,
+    pub tags: Vec<String>,
+    /// 已去除 null 與空字串
+    pub variation_names: Vec<String>,
+}
+
 #[derive(Deserialize)]
 pub(crate) struct BoothJsonSchema {
     pub id: u64,
@@ -20,6 +32,12 @@ pub(crate) struct BoothJsonSchema {
     pub images: Vec<BoothPximg>,
     pub category: BoothCategory,
     pub published_at: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub tags: Vec<BoothTag>,
+    #[serde(default)]
+    pub variations: Vec<BoothVariation>,
 }
 
 #[derive(Deserialize)]
@@ -35,4 +53,16 @@ pub(crate) struct BoothPximg {
 #[derive(Deserialize)]
 pub(crate) struct BoothCategory {
     pub id: i32,
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct BoothTag {
+    pub name: String,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct BoothVariation {
+    pub name: Option<String>,
 }

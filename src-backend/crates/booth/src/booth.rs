@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use model::AssetType;
 
-use crate::{BoothInfoFetchError, definitions::BoothJsonSchema};
+use crate::{BoothInfoFetchError, BoothItemDetail, definitions::BoothJsonSchema};
 
 use super::{cache::BoothCache, client::get_reqwest_client, definitions::BoothAssetInfo};
 
@@ -25,6 +25,27 @@ impl BoothFetcher {
             return Ok(cached_result);
         }
 
+        self.request_and_process(id).await
+    }
+
+    pub async fn fetch_detail(&mut self, id: u64) -> Result<BoothItemDetail, BoothInfoFetchError> {
+        if let Some(cached_result) = self.cache.get_detail(id) {
+            return Ok(cached_result);
+        }
+
+        self.request_and_process(id).await?;
+
+        // parse_response_and_process wrote to the cache just now
+        Ok(self
+            .cache
+            .get_detail(id)
+            .expect("cache should be populated right after a successful fetch"))
+    }
+
+    async fn request_and_process(
+        &mut self,
+        id: u64,
+    ) -> Result<BoothAssetInfo, BoothInfoFetchError> {
         let url = construct_api_url(id);
         let response = self.reqwest_client.get(&url).send().await?;
 
@@ -48,6 +69,20 @@ impl BoothFetcher {
 
         let estimated_asset_type = estimate_asset_type_from_category(response.category.id);
 
+        let detail = BoothItemDetail {
+            name: response.name.clone(),
+            shop_name: response.shop.name.clone(),
+            category_name: response.category.name,
+            description: response.description,
+            tags: response.tags.into_iter().map(|t| t.name).collect(),
+            variation_names: response
+                .variations
+                .into_iter()
+                .filter_map(|v| v.name)
+                .filter(|n| !n.is_empty())
+                .collect(),
+        };
+
         let result = BoothAssetInfo {
             id,
             name: response.name,
@@ -57,7 +92,7 @@ impl BoothFetcher {
             estimated_asset_type,
         };
 
-        self.cache.insert(id, result.clone());
+        self.cache.insert(id, result.clone(), detail);
         Ok(result)
     }
 }
@@ -115,6 +150,32 @@ mod tests {
         );
         assert_eq!(result.published_at, 1740651821000);
         assert_eq!(result.estimated_asset_type, Some(AssetType::AvatarWearable));
+    }
+
+    #[test]
+    fn test_parse_detail() {
+        let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
+        let body = include_str!("../test/6641548.json");
+        fetcher.parse_response_and_process(body).unwrap();
+        let detail = fetcher.cache.get_detail(6641548).unwrap();
+        assert_eq!(detail.name, "KonoAsset - VRChat向けアセット管理ツール");
+        assert_eq!(detail.shop_name, "silolab");
+        assert_eq!(detail.category_name.as_deref(), Some("3Dツール・システム"));
+        assert_eq!(detail.tags, vec!["VRChat".to_string()]);
+        assert!(detail.variation_names.is_empty()); // 唯一的規格 name 為 null
+        assert!(!detail.description.is_empty());
+    }
+
+    #[test]
+    fn test_parse_minimal_json_without_detail_fields() {
+        let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
+        let body = include_str!("../test/minimal.json");
+        let info = fetcher.parse_response_and_process(body).unwrap();
+        let detail = fetcher.cache.get_detail(info.id).unwrap();
+        assert_eq!(detail.description, "");
+        assert!(detail.tags.is_empty());
+        assert!(detail.variation_names.is_empty());
+        assert_eq!(detail.category_name, None);
     }
 
     #[test]

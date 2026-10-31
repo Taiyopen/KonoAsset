@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "name": "Minimal Item",
+  "shop": { "name": "Minimal Shop" },
+  "images": [],
+  "category": { "id": 209 },
+  "published_at": "2025-02-27T19:03:41.000+09:00"
+}
