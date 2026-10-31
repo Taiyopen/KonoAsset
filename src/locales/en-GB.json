@@ -89,6 +89,7 @@
     "download-jobs:button:dismiss": "Remove",
     "download-jobs:password-placeholder": "Enter password",
     "download-jobs:failed-toast": "Download failed",
+    "download-jobs:action-failed-toast": "Action failed",
     "download-jobs:error:password-required": "Password required",
     "download-jobs:error:wrong-password": "Wrong password",
     "download-jobs:error:not-found": "File not found (it may have been deleted)",

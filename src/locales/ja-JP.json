@@ -89,6 +89,7 @@
     "download-jobs:button:dismiss": "削除",
     "download-jobs:password-placeholder": "パスワードを入力",
     "download-jobs:failed-toast": "ダウンロードに失敗しました",
+    "download-jobs:action-failed-toast": "操作に失敗しました",
     "download-jobs:error:password-required": "パスワードが必要です",
     "download-jobs:error:wrong-password": "パスワードが違います",
     "download-jobs:error:not-found": "ファイルが見つかりません（削除された可能性があります）",

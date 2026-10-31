@@ -574,7 +574,9 @@ mod tests {
         wait_until(|| h.backend.import_calls.load(Ordering::SeqCst) == 1).await;
         assert_eq!(job(&h.manager, id).status, DownloadJobStatus::Importing);
 
-        assert!(h.manager.cancel(id).await.is_err());
+        // The frontend recognizes this refusal by its ending (isCancelRejectedWhileImporting).
+        let err = h.manager.cancel(id).await.unwrap_err();
+        assert!(err.ends_with("while importing"), "{err}");
         assert_eq!(job(&h.manager, id).status, DownloadJobStatus::Importing);
 
         import_gate.add_permits(1);

@@ -89,6 +89,7 @@
     "download-jobs:button:dismiss": "移除",
     "download-jobs:password-placeholder": "输入密码",
     "download-jobs:failed-toast": "下载失败",
+    "download-jobs:action-failed-toast": "操作失败",
     "download-jobs:error:password-required": "需要密码",
     "download-jobs:error:wrong-password": "密码错误",
     "download-jobs:error:not-found": "找不到文件（可能已被删除）",

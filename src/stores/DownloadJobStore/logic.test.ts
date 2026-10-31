@@ -4,6 +4,7 @@ import {
   activeCount,
   detectTransitions,
   errorKindLocaleKey,
+  isCancelRejectedWhileImporting,
   progressPercent,
   removeJob,
   upsertJob,
@@ -163,5 +164,18 @@ describe('errorKindLocaleKey', () => {
 
   test('falls back to other when the kind is missing', () => {
     expect(errorKindLocaleKey(null)).toBe('download-jobs:error:other')
+  })
+})
+
+describe('isCancelRejectedWhileImporting', () => {
+  test('matches only the backend refusal for importing jobs', () => {
+    expect(
+      isCancelRejectedWhileImporting(
+        'Download job 1 cannot be cancelled while importing',
+      ),
+    ).toBe(true)
+    expect(isCancelRejectedWhileImporting('Download job 1 not found')).toBe(
+      false,
+    )
   })
 })

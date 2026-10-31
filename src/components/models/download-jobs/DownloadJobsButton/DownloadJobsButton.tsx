@@ -3,7 +3,10 @@ import { commands, DownloadJob, Result } from '@/lib/bindings'
 import { useAssetFilterStore } from '@/stores/AssetFilterStore'
 import { useAssetSummaryViewStore } from '@/stores/AssetSummaryViewStore'
 import { useDownloadJobStore } from '@/stores/DownloadJobStore'
-import { activeCount } from '@/stores/DownloadJobStore/logic'
+import {
+  activeCount,
+  isCancelRejectedWhileImporting,
+} from '@/stores/DownloadJobStore/logic'
 import { useLocalization } from '@/hooks/use-localization'
 import { useToast } from '@/hooks/use-toast'
 import { DownloadJobsPopover } from '../DownloadJobsPopover'
@@ -54,12 +57,14 @@ export const DownloadJobsButton: FC = () => {
 
   const runCommand = async (
     command: Promise<Result<null, string>>,
+    isExpectedError: (error: string) => boolean = () => false,
   ): Promise<Result<null, string>> => {
     const result = await command
 
-    if (result.status === 'error') {
+    if (result.status === 'error' && !isExpectedError(result.error)) {
       toast({
-        title: result.error,
+        title: t('download-jobs:action-failed-toast'),
+        description: result.error,
         variant: 'destructive',
       })
     }
@@ -84,7 +89,12 @@ export const DownloadJobsButton: FC = () => {
     <DownloadJobsPopover
       jobs={jobs}
       activeCount={activeCount(jobs)}
-      onCancel={(id) => runCommand(commands.cancelDownloadJob(id))}
+      onCancel={(id) =>
+        runCommand(
+          commands.cancelDownloadJob(id),
+          isCancelRejectedWhileImporting,
+        )
+      }
       onRetry={(id, password) =>
         runCommand(commands.retryDownloadJob(id, password))
       }

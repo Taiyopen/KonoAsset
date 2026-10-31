@@ -65,3 +65,7 @@ export const errorKindLocaleKey = (kind: DownloadErrorKind | null): string =>
 
 export const removeJob = (jobs: DownloadJob[], id: string): DownloadJob[] =>
   jobs.filter((job) => job.id !== id)
+
+// manager.rs の cancel がインポート中のジョブを断る時のメッセージ。行は自動で更新されるので通知しない
+export const isCancelRejectedWhileImporting = (error: string): boolean =>
+  error.endsWith('while importing')
