@@ -66,19 +66,6 @@
             "text": "可篩選未指定分類、對應虛擬角色或標籤的素材"
           }
         ]
-      },
-      {
-        "text": "Assets can now be added directly from download links (workupload, pixeldrain, Google Drive, OneDrive, direct links) and are downloaded and imported in the background",
-        "langs": [
-          {
-            "lang": ["ja-JP"],
-            "text": "ダウンロードリンクから直接アセットを追加できるように（バックグラウンドでダウンロード・インポート）"
-          },
-          {
-            "lang": ["zh-TW"],
-            "text": "可直接從下載連結新增素材（支援 workupload、pixeldrain、Google Drive、OneDrive 與直接連結），並在背景下載與匯入"
-          }
-        ]
       }
     ],
     "fixes": [

@@ -2,6 +2,7 @@
 
 ### 🚀新功能
 - 新增素材時，可用 Claude 自動填入分類、對應虛擬角色與標籤（需在設定中填入 API 金鑰）
+- 可直接貼上下載連結新增素材（支援 workupload、pixeldrain、Google Drive、OneDrive 與直接連結），下載與匯入會在背景進行
 
 ### 🐛錯誤修正
 - 修正在部分 Windows 環境中，開啟只有 zip 等非 unitypackage 檔案的素材時出現「IO error」而無法開啟資料夾的問題
