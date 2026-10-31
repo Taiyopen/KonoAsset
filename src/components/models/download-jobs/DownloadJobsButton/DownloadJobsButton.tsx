@@ -1,0 +1,80 @@
+import { FC, useEffect, useRef } from 'react'
+import { commands, DownloadJob, Result } from '@/lib/bindings'
+import { useAssetFilterStore } from '@/stores/AssetFilterStore'
+import { useAssetSummaryViewStore } from '@/stores/AssetSummaryViewStore'
+import { useDownloadJobStore } from '@/stores/DownloadJobStore'
+import { activeCount } from '@/stores/DownloadJobStore/logic'
+import { useLocalization } from '@/hooks/use-localization'
+import { useToast } from '@/hooks/use-toast'
+import { DownloadJobsPopover } from '../DownloadJobsPopover'
+
+export const DownloadJobsButton: FC = () => {
+  const { t } = useLocalization()
+  const { toast } = useToast()
+
+  const jobs = useDownloadJobStore((state) => state.jobs)
+  const initialize = useDownloadJobStore((state) => state.initialize)
+  const refreshAssetSummaries = useAssetSummaryViewStore(
+    (state) => state.refreshAssetSummaries,
+  )
+  const refreshFilteredIds = useAssetFilterStore(
+    (state) => state.refreshFilteredIds,
+  )
+
+  const onTransition = (
+    job: DownloadJob,
+    transition: 'completed' | 'failed',
+  ) => {
+    if (transition === 'completed') {
+      toast({
+        title: t('addasset:success-toast'),
+        description: job.assetName,
+        duration: 3000,
+      })
+      refreshAssetSummaries()
+      refreshFilteredIds()
+    } else {
+      toast({
+        title: t('download-jobs:failed-toast'),
+        description: job.assetName,
+      })
+    }
+  }
+
+  // initialize は一度しか購読しないので、最新の t / toast を呼べるよう ref 経由にする
+  const onTransitionRef = useRef(onTransition)
+  useEffect(() => {
+    onTransitionRef.current = onTransition
+  })
+
+  useEffect(() => {
+    initialize((job, transition) => onTransitionRef.current(job, transition))
+  }, [initialize])
+
+  const runCommand = async (command: Promise<Result<null, string>>) => {
+    const result = await command
+
+    if (result.status === 'error') {
+      toast({
+        title: result.error,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  if (jobs.length === 0) {
+    return null
+  }
+
+  return (
+    <DownloadJobsPopover
+      jobs={jobs}
+      activeCount={activeCount(jobs)}
+      onCancel={(id) => runCommand(commands.cancelDownloadJob(id))}
+      onRetry={(id, password) =>
+        runCommand(commands.retryDownloadJob(id, password))
+      }
+      onDismiss={(id) => runCommand(commands.dismissDownloadJob(id))}
+    />
+  )
+}

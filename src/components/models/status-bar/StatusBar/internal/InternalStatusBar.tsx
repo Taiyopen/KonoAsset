@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useLocalization } from '@/hooks/use-localization'
 import { StatusBarOptionPopover } from '../../StatusBarOptionPopover'
 import { cn } from '@/lib/utils'
+import { DownloadJobsButton } from '@/components/models/download-jobs/DownloadJobsButton'
 
 type Props = {
   totalAssetCount: number
@@ -51,7 +52,8 @@ export const InternalStatusBar: FC<Props> = ({
           </div>
         </Card>
       </div>
-      <div className="ml-2 flex items-center shrink-0">
+      <div className="ml-2 flex items-center shrink-0 gap-2">
+        <DownloadJobsButton />
         <StatusBarOptionPopover />
       </div>
     </div>
