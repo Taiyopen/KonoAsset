@@ -216,4 +216,158 @@ describe('useAiSuggest', () => {
     expect(result.current.form.getValues('category')).toBe('')
     expect(mocks.toast).not.toHaveBeenCalled()
   })
+
+  it('does not touch the form when the response arrives off the review tab, and applies it from cache on re-entry', async () => {
+    let resolve: (v: ReturnType<typeof ok>) => void = () => {}
+    mocks.suggest.mockReturnValue(
+      new Promise((r) => {
+        resolve = r
+      }),
+    )
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() => expect(result.current.viewState.loading).toBe(true))
+
+    rerender({ tab: 'additional-input', dialogOpen: true })
+    await act(async () => {
+      resolve(ok(suggestion('A-cat', ['A'], true)))
+    })
+
+    expect(result.current.form.getValues('category')).toBe('')
+    expect(result.current.form.getValues('tags')).toEqual([])
+    expect(result.current.viewState.newValues.category).toBeNull()
+    expect(result.current.viewState.loading).toBe(false)
+
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('A-cat'),
+    )
+    expect(result.current.form.getValues('tags')).toEqual(['A'])
+    expect(result.current.viewState.newValues.category).toBe('A-cat')
+    expect(mocks.suggest).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls the command only twice when switching A -> B -> A', async () => {
+    mocks.suggest.mockImplementation(async (_id: number, type: string) =>
+      ok(suggestion(type === 'Avatar' ? 'A-cat' : 'B-cat')),
+    )
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('A-cat'),
+    )
+
+    act(() => {
+      result.current.form.setValue('assetType', 'WorldObject')
+    })
+    rerender({ tab: 'booth-input', dialogOpen: true })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('B-cat'),
+    )
+    expect(mocks.suggest).toHaveBeenCalledTimes(2)
+
+    act(() => {
+      result.current.form.setValue('assetType', 'Avatar')
+    })
+    rerender({ tab: 'booth-input', dialogOpen: true })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('A-cat'),
+    )
+    expect(mocks.suggest).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not fire a second request for a key that is still in flight', async () => {
+    mocks.suggest.mockReturnValue(new Promise(() => {}))
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() => expect(result.current.viewState.loading).toBe(true))
+
+    rerender({ tab: 'booth-input', dialogOpen: true })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    expect(mocks.suggest).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call the command when the dialog is closed and reopened on manual-input', async () => {
+    mocks.suggest.mockResolvedValue(ok(suggestion('A-cat')))
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('A-cat'),
+    )
+    expect(mocks.suggest).toHaveBeenCalledTimes(1)
+
+    rerender({ tab: 'manual-input', dialogOpen: false })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    expect(mocks.suggest).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears the new-value badges as soon as a request starts for a different item', async () => {
+    mocks.suggest.mockResolvedValueOnce(ok(suggestion('A-cat', ['A'], true)))
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() =>
+      expect(result.current.viewState.newValues.category).toBe('A-cat'),
+    )
+
+    mocks.suggest.mockReturnValue(new Promise(() => {}))
+    act(() => {
+      result.current.form.setValue('boothItemId', 2)
+    })
+    rerender({ tab: 'booth-input', dialogOpen: true })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    await waitFor(() => expect(mocks.suggest).toHaveBeenCalledTimes(2))
+    expect(result.current.viewState.newValues.category).toBeNull()
+  })
+
+  it('removes unmodified AI values from the previous item when the next item fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.suggest.mockResolvedValueOnce(ok(suggestion('A-cat', ['A'], true)))
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('A-cat'),
+    )
+
+    mocks.suggest.mockResolvedValue({ status: 'error', error: 'Timeout' })
+    act(() => {
+      result.current.form.setValue('boothItemId', 2)
+    })
+    rerender({ tab: 'booth-input', dialogOpen: true })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1))
+    expect(result.current.form.getValues('category')).toBe('')
+    expect(result.current.form.getValues('tags')).toEqual([])
+    expect(result.current.viewState.newValues.category).toBeNull()
+    expect(result.current.viewState.newValues.tags).toEqual([])
+  })
+
+  it('keeps user-modified values when the next item fails', async () => {
+    mocks.suggest.mockResolvedValueOnce(ok(suggestion('A-cat', ['A'])))
+    const { result, rerender } = setup('manual-input')
+
+    await waitFor(() =>
+      expect(result.current.form.getValues('category')).toBe('A-cat'),
+    )
+
+    act(() => {
+      result.current.form.setValue('category', 'mine')
+      result.current.form.setValue('boothItemId', 2)
+    })
+    mocks.suggest.mockResolvedValue({ status: 'error', error: 'Timeout' })
+    rerender({ tab: 'booth-input', dialogOpen: true })
+    rerender({ tab: 'manual-input', dialogOpen: true })
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1))
+    expect(result.current.form.getValues('category')).toBe('mine')
+    expect(result.current.form.getValues('tags')).toEqual([])
+  })
 })

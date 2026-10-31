@@ -191,4 +191,10 @@ describe('ai-suggest logic', () => {
     for (const k of failed)
       expect(errorMessageKey(k)).toBe('addasset:ai-suggest:error:failed')
   })
+
+  it('falls back to the generic failure message for unknown error strings', () => {
+    expect(errorMessageKey('SomethingNew' as AiSuggestErrorKind)).toBe(
+      'addasset:ai-suggest:error:failed',
+    )
+  })
 })

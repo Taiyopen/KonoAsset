@@ -606,7 +606,8 @@ const MultipleSelector = ({
                       {
                         'mr-6': lastBadgeInFirstRow === index,
                         'bg-destructive': isNot && negativeSelectable,
-                        'bg-amber-500 text-white': isHighlighted,
+                        'bg-amber-500 text-white hover:bg-amber-500/80':
+                          isHighlighted,
                       },
                       badgeClassName,
                     )}

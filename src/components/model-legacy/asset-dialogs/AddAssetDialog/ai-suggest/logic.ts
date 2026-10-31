@@ -95,6 +95,13 @@ export const applyAiSuggestion = (
   return result
 }
 
+/** 提案が無い状態。AIが書き込んだ未変更の値を取り除くために使う */
+export const EMPTY_AI_SUGGESTION: AiSuggestion = {
+  category: null,
+  supportedAvatars: [],
+  tags: [],
+}
+
 export const collectNewValues = (s: AiSuggestion): AiNewValues => ({
   category: s.category?.isNew ? s.category.value : null,
   supportedAvatars: s.supportedAvatars
@@ -120,6 +127,9 @@ export const errorMessageKey = (e: AiSuggestErrorKind): string | null => {
     case 'Refused':
     case 'Truncated':
     case 'InvalidResponse':
+      return 'addasset:ai-suggest:error:failed'
+    default:
+      // バックエンドが未知の文字列を返した場合でも、必ず表示可能なメッセージにする
       return 'addasset:ai-suggest:error:failed'
   }
 }
