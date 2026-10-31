@@ -99,7 +99,7 @@
     "download-jobs:error:import-failed": "匯入失敗",
     "download-jobs:error:other": "下載失敗",
     "addasset:select-path": "要新增哪一種？",
-    "addasset:select-path:explanation-text": "請選擇要新增資料夾還是檔案！",
+    "addasset:select-path:explanation-text": "請選擇要新增檔案、資料夾，或貼上下載連結！",
     "addasset:select-path:drop-text": "也可以將檔案或資料夾拖放到視窗上來新增",
     "addasset:select-path:zip-text:enabled": "ZIP 檔案會自動解壓縮",
     "addasset:select-path:zip-text:disabled": "ZIP 檔案不會自動解壓縮",

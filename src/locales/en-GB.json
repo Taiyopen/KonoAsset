@@ -99,7 +99,7 @@
     "download-jobs:error:import-failed": "Import failed",
     "download-jobs:error:other": "Download failed",
     "addasset:select-path": "Which would you like to add?",
-    "addasset:select-path:explanation-text": "Please choose whether to add a folder or file!",
+    "addasset:select-path:explanation-text": "Please choose to add a file or folder, or paste a download link!",
     "addasset:select-path:drop-text": "You can also drag and drop a file or folder onto the window to add it",
     "addasset:select-path:zip-text:enabled": "ZIP files will be extracted automatically",
     "addasset:select-path:zip-text:disabled": "ZIP files will not be extracted automatically",

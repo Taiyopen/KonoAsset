@@ -99,7 +99,7 @@
     "download-jobs:error:import-failed": "インポートに失敗しました",
     "download-jobs:error:other": "ダウンロードに失敗しました",
     "addasset:select-path": "どちらを追加しますか？",
-    "addasset:select-path:explanation-text": "フォルダとファイルのどちらを追加するか選択してください！",
+    "addasset:select-path:explanation-text": "ファイルかフォルダを追加するか、ダウンロードリンクを貼り付けてください！",
     "addasset:select-path:drop-text": "ウィンドウ上にファイルかフォルダをドロップしても追加できます",
     "addasset:select-path:zip-text:enabled": "ZIPファイルは自動で展開されます",
     "addasset:select-path:zip-text:disabled": "ZIPファイルは自動で展開されません",

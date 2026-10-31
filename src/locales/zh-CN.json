@@ -99,7 +99,7 @@
     "download-jobs:error:import-failed": "导入失败",
     "download-jobs:error:other": "下载失败",
     "addasset:select-path": "您想要添加什么？",
-    "addasset:select-path:explanation-text": "请选择要添加文件夹还是文件！",
+    "addasset:select-path:explanation-text": "请选择要添加文件、文件夹，或粘贴下载链接！",
     "addasset:select-path:drop-text": "您也可以将文件或文件夹拖放到窗口进行添加",
     "addasset:select-path:zip-text:enabled": "ZIP文件将自动解压",
     "addasset:select-path:zip-text:disabled": "ZIP文件不会自动解压",
