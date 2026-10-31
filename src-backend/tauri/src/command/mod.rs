@@ -77,6 +77,13 @@ pub fn generate_tauri_specta_builder() -> Builder<tauri::Wry> {
         task::commands::get_task_status,
         task::commands::cancel_task_request,
         task::commands::get_task_error,
+        // ダウンロード関連
+        crate::download_job::commands::parse_download_links,
+        crate::download_job::commands::request_download_import,
+        crate::download_job::commands::list_download_jobs,
+        crate::download_job::commands::cancel_download_job,
+        crate::download_job::commands::retry_download_job,
+        crate::download_job::commands::dismiss_download_job,
         // 言語関係
         language::common::get_current_language_data,
         language::common::load_language_file,

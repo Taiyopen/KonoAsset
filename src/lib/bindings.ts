@@ -460,6 +460,49 @@ async getTaskError(id: string) : Promise<Result<string | null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async parseDownloadLinks(text: string) : Promise<ParsedLine[]> {
+    return await TAURI_INVOKE("parse_download_links", { text });
+},
+async requestDownloadImport(request: DownloadImportRequest) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("request_download_import", { request }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listDownloadJobs() : Promise<Result<DownloadJob[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_download_jobs") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async cancelDownloadJob(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("cancel_download_job", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async retryDownloadJob(id: string, password: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("retry_download_job", { id, password }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async dismissDownloadJob(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("dismiss_download_job", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getCurrentLanguageData() : Promise<Result<LocalizationData, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_current_language_data") };
@@ -508,12 +551,14 @@ async saveAppState(state: AppState) : Promise<Result<null, string>> {
 export const events = __makeEvents__<{
 addAssetDeepLink: AddAssetDeepLink,
 assetVolumeEstimatedEvent: AssetVolumeEstimatedEvent,
+downloadJobUpdated: DownloadJobUpdated,
 progressEvent: ProgressEvent,
 taskStatusChanged: TaskStatusChanged,
 updateProgress: UpdateProgress
 }>({
 addAssetDeepLink: "add-asset-deep-link",
 assetVolumeEstimatedEvent: "asset-volume-estimated-event",
+downloadJobUpdated: "download-job-updated",
 progressEvent: "progress-event",
 taskStatusChanged: "task-status-changed",
 updateProgress: "update-progress"
@@ -543,6 +588,35 @@ export type AvatarWearable = { id: string; description: AssetDescription; catego
 export type BoothAssetInfo = { id: number; name: string; creator: string; imageUrls: string[]; publishedAt: number; estimatedAssetType: AssetType | null }
 export type CustomLanguageFileLoadResult = { data: LocalizationData; missing_keys: string[]; additional_keys: string[] }
 export type DisplayStyle = "GridSmall" | "GridMedium" | "GridLarge" | "List"
+/**
+ * Error category sent to the frontend; the UI shows a localized message per kind.
+ */
+export type DownloadErrorKind = "PasswordRequired" | "WrongPassword" | "NotFound" | "LoginRequired" | "RateLimited" | "NotAFile" | "ImportFailed" | "Other"
+export type DownloadImportRequest = { linksText: string; preAsset: DownloadPreAsset }
+export type DownloadJob = { id: string; assetName: string; status: DownloadJobStatus; 
+/**
+ * Site of the first link.
+ */
+site: SiteKind; currentFile: string | null; 
+/**
+ * 1-based index over all files of the job.
+ */
+fileIndex: number; 
+/**
+ * Known once every line has been listed.
+ */
+fileCount: number | null; downloadedBytes: number; 
+/**
+ * Size of the current file, `None` when unknown.
+ */
+totalBytes: number | null; error: string | null; errorKind: DownloadErrorKind | null; 
+/**
+ * Input line that failed to download; `None` for import failures.
+ */
+failedLine: number | null; createdAt: number }
+export type DownloadJobStatus = "Queued" | "Downloading" | "Importing" | "Completed" | "Failed" | "Cancelled"
+export type DownloadJobUpdated = DownloadJob
+export type DownloadPreAsset = { Avatar: PreAvatar } | { AvatarWearable: PreAvatarWearable } | { WorldObject: PreWorldObject } | { OtherAsset: PreOtherAsset }
 export type DryOrActual = "dryRun" | "actualRun"
 export type EntryType = "directory" | "file"
 export type FileInfo = { fileName: string; absolutePath: string }
@@ -551,6 +625,7 @@ export type FilterRequest = { assetType: AssetType | null; queryText: string | n
 export type FilterRequirement<T> = { type: "Include"; data: T } | { type: "Exclude"; data: T }
 export type GetAssetResult = { assetType: AssetType; avatar: Avatar | null; avatarWearable: AvatarWearable | null; worldObject: WorldObject | null; otherAsset: OtherAsset | null }
 export type ImageOptimizationResult = { resized: number; deleted: number }
+export type JobKind = "File" | "Folder"
 export type LanguageCode = "ja-JP" | "en-US" | "en-GB" | "zh-CN" | "zh-TW" | { "user-provided": string }
 export type LoadResult = { success: boolean; preferenceLoaded: boolean; message: string | null }
 export type LocalizationData = { language: LanguageCode; data: Partial<{ [key in string]: string }> }
@@ -558,6 +633,7 @@ export type LocalizedChanges = { version: string; pre_release: boolean; features
 export type LogEntry = { time: string; level: LogLevel; target: string; message: string }
 export type LogLevel = "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export type OtherAsset = { id: string; description: AssetDescription; category: string }
+export type ParsedLine = { lineNumber: number; text: string; site: SiteKind | null; kind: JobKind | null; hasPassword: boolean; valid: boolean }
 export type PreAvatar = { description: AssetDescription }
 export type PreAvatarWearable = { description: AssetDescription; category: string; supportedAvatars: string[] }
 export type PreOtherAsset = { description: AssetDescription; category: string }
@@ -567,6 +643,7 @@ export type PrioritizedEntry = { priority: number; value: string }
 export type ProgressEvent = { percentage: number; filename: string }
 export type ResetApplicationRequest = { resetPreferences: boolean; deleteMetadata: boolean; deleteAssetData: boolean }
 export type SimplifiedDirEntry = { entryType: EntryType; name: string; absolutePath: string }
+export type SiteKind = "Workupload" | "Pixeldrain" | "GoogleDrive" | "OneDrive" | "Direct"
 export type SortBy = "Name" | "Creator" | "CreatedAt" | "PublishedAt"
 export type SortState = { sortBy: SortBy; reversed: boolean }
 export type SuggestedValue = { value: string; isNew: boolean }

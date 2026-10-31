@@ -28,24 +28,29 @@ pub struct LineError {
 
 pub const MAX_TRIES: u32 = 4;
 
-/// Runs `op` up to `MAX_TRIES` times. Only retryable errors are retried.
-async fn with_retry<T>(
-    site: &mut dyn Site,
-    mut op: impl AsyncFnMut(&mut dyn Site) -> Result<T, DownloadError>,
-) -> Result<T, DownloadError> {
-    let mut attempt = 1;
-    loop {
-        match op(site).await {
-            Ok(value) => return Ok(value),
-            Err(err) if err.is_retryable() && attempt < MAX_TRIES => {
-                let wait = site.retry_wait(attempt, &err);
-                log::warn!("attempt {attempt}/{MAX_TRIES} failed, retrying in {wait:?}: {err}");
-                sleep(wait).await;
-                attempt += 1;
+/// Runs `$op` (an expression on `$s`, the site) up to `MAX_TRIES` times. Only retryable
+/// errors are retried.
+///
+/// A macro because a function taking an async closure makes the future of `download_all`
+/// not `Send` ("implementation of `Send` is not general enough"), and the job manager spawns it.
+macro_rules! with_retry {
+    ($site:expr, |$s:ident| $op:expr) => {{
+        let $s: &mut dyn Site = $site;
+        let mut attempt = 1;
+        loop {
+            let result: Result<_, DownloadError> = $op.await;
+            match result {
+                Ok(value) => break Ok(value),
+                Err(err) if err.is_retryable() && attempt < MAX_TRIES => {
+                    let wait = $s.retry_wait(attempt, &err);
+                    log::warn!("attempt {attempt}/{MAX_TRIES} failed, retrying in {wait:?}: {err}");
+                    sleep(wait).await;
+                    attempt += 1;
+                }
+                Err(err) => break Err(err),
             }
-            Err(err) => return Err(err),
         }
-    }
+    }};
 }
 
 struct Listed {
@@ -84,8 +89,7 @@ pub async fn download_all(
     for line in lines {
         let site = sites.entry(line.site).or_insert_with(|| factory(line.site));
         let (folder, items) =
-            with_retry(site.as_mut(), async |s| s.list_files(ctx, &line.job).await)
-                .await
+            with_retry!(site.as_mut(), |s| s.list_files(ctx, &line.job))
                 .map_err(|error| LineError {
                     line_number: line.line_number,
                     error,
@@ -153,11 +157,9 @@ pub async fn download_all(
                 })
             };
 
-            let path = with_retry(site.as_mut(), async |s| {
+            let path = with_retry!(site.as_mut(), |s| {
                 s.download(ctx, item, &entry.password, &target_dir, &file_progress)
-                    .await
             })
-            .await
             .map_err(line_error)?;
 
             last_done.insert(entry.site, Instant::now());
@@ -520,5 +522,15 @@ mod tests {
                 .join("1/pack/unnamed/unnamed/evil/a.zip")
                 .is_file()
         );
+    }
+
+    /// The job manager runs `download_all` on a spawned tokio task, so its future must be `Send`.
+    #[test]
+    fn download_all_future_is_send() {
+        fn assert_send<T: Send>(_: &T) {}
+        let ctx = ctx();
+        let dir = PathBuf::from("unused");
+        let future = download_all(&ctx, &crate::sites::create, &[], &dir, &no_progress);
+        assert_send(&future);
     }
 }

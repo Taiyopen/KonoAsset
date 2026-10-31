@@ -7,6 +7,9 @@ use deep_link::{
     execute_deep_links, parse_args_to_deep_links,
 };
 use definitions::entities::{InitialSetup, LoadResult, ProgressEvent};
+use download_job::{
+    backend::TauriJobBackend, definitions::DownloadJobUpdated, manager::DownloadJobManager,
+};
 use file::modify_guard::{self, FileTransferGuard};
 use language::LocalizationData;
 use model::preference::{PreferenceStore, UpdateChannel};
@@ -14,7 +17,7 @@ use state::StateHandler;
 use statistics::{AssetVolumeEstimatedEvent, AssetVolumeStatisticsCache};
 use storage::{asset_storage::AssetStorage, delete::delete_temporary_images};
 use task::{TaskContainer, TaskStatusChanged};
-use tauri::{AppHandle, Manager, async_runtime::Mutex};
+use tauri::{AppHandle, Manager, WindowEvent, async_runtime::Mutex};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::StateFlags;
 use tauri_specta::{Event, collect_events};
@@ -27,8 +30,6 @@ mod adapter;
 mod command;
 mod deep_link;
 mod definitions;
-// Not wired into commands and setup yet; remove the allow once it is.
-#[allow(dead_code)]
 mod download_job;
 mod importer;
 mod statistics;
@@ -44,6 +45,7 @@ pub fn run() {
         AddAssetDeepLink,
         UpdateProgress,
         AssetVolumeEstimatedEvent,
+        DownloadJobUpdated,
     ]);
 
     #[cfg(debug_assertions)]
@@ -76,12 +78,20 @@ pub fn run() {
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(StateFlags::SIZE | StateFlags::MAXIMIZED)
+                // ダウンロード用の非表示ウィンドウは記録しない
+                .with_filter(|label| !label.starts_with("dl-"))
                 .build(),
         )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(builder.invoke_handler())
+        .on_window_event(|window, event| {
+            // ダウンロード用の非表示ウィンドウが残っていてもアプリを終了する
+            if window.label() == "main" && matches!(event, WindowEvent::Destroyed) {
+                window.app_handle().exit(0);
+            }
+        })
         .manage(Mutex::new(BoothFetcher::new(VERSION)))
         .manage(ai_suggest::ReqwestTransport::new(VERSION))
         .manage(arc_mutex(LocalizationData::default()))
@@ -127,6 +137,19 @@ pub fn run() {
                     return Ok(());
                 }
             };
+
+            let download_root = app_local_data_dir.join("downloads");
+            DownloadJobManager::cleanup_root(&download_root);
+            let app_handle = app.handle().clone();
+            app.manage(arc_mutex(DownloadJobManager::new(
+                download_root,
+                Arc::new(TauriJobBackend::new(app.handle().clone())),
+                Arc::new(move |job| {
+                    if let Err(e) = DownloadJobUpdated(job).emit(&app_handle) {
+                        log::error!("Failed to emit DownloadJobUpdated event: {}", e);
+                    }
+                }),
+            )));
 
             let preference_file_path = app_local_data_dir.join("preference.json");
             let state_file_path = app_local_data_dir.join("state.json");
