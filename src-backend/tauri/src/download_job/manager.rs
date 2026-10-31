@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use downloader::{DownloadErrorKind, LineError, LinkLine, Progress, valid_lines};
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex as AsyncMutex, OwnedMutexGuard, Semaphore};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
@@ -12,6 +12,11 @@ use super::definitions::{DownloadImportRequest, DownloadJob, DownloadJobStatus, 
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 3;
 const PROGRESS_INTERVAL: Duration = Duration::from_millis(250);
+/// Pause between two exclusive (workupload) jobs, like workupload's pause between two files.
+const EXCLUSIVE_GAP: Duration = Duration::from_secs(10);
+
+/// When the last exclusive job finished downloading; locked while one downloads.
+type ExclusiveSlot = Arc<AsyncMutex<Option<tokio::time::Instant>>>;
 
 /// Does the actual work of a job; the real one wraps `downloader` and the importer.
 #[async_trait]
@@ -42,7 +47,7 @@ pub struct DownloadJobManager {
     emit: EmitFn,
     jobs: Vec<Entry>,
     download_slots: Arc<Semaphore>,
-    exclusive_slot: Arc<Semaphore>,
+    exclusive_slot: ExclusiveSlot,
 }
 
 impl DownloadJobManager {
@@ -53,7 +58,7 @@ impl DownloadJobManager {
             emit,
             jobs: Vec::new(),
             download_slots: Arc::new(Semaphore::new(MAX_CONCURRENT_DOWNLOADS)),
-            exclusive_slot: Arc::new(Semaphore::new(1)),
+            exclusive_slot: ExclusiveSlot::default(),
         }
     }
 
@@ -228,7 +233,7 @@ struct Run {
     pre_asset: DownloadPreAsset,
     out_dir: PathBuf,
     download_slots: Arc<Semaphore>,
-    exclusive_slot: Arc<Semaphore>,
+    exclusive_slot: ExclusiveSlot,
 }
 
 impl Run {
@@ -236,13 +241,11 @@ impl Run {
         let downloaded = {
             // Take the exclusive slot first so a waiting workupload job does not hold a shared slot.
             let _exclusive = if self.lines.iter().any(|line| line.site.is_exclusive()) {
-                Some(
-                    self.exclusive_slot
-                        .clone()
-                        .acquire_owned()
-                        .await
-                        .expect("semaphore is never closed"),
-                )
+                let last_finished = self.exclusive_slot.clone().lock_owned().await;
+                if let Some(at) = *last_finished {
+                    tokio::time::sleep_until(at + EXCLUSIVE_GAP).await;
+                }
+                Some(ExclusiveTurn(last_finished))
             } else {
                 None
             };
@@ -345,6 +348,15 @@ impl Run {
     }
 }
 
+/// The exclusive slot of a running job; records when it is given back.
+struct ExclusiveTurn(OwnedMutexGuard<Option<tokio::time::Instant>>);
+
+impl Drop for ExclusiveTurn {
+    fn drop(&mut self) {
+        *self.0 = Some(tokio::time::Instant::now());
+    }
+}
+
 /// A panic elsewhere must not make every later job operation panic too.
 fn lock<T>(mutex: &StdMutex<T>) -> MutexGuard<'_, T> {
     mutex
@@ -396,6 +408,8 @@ mod tests {
         import_calls: AtomicU32,
         /// Passwords of every line, per download call.
         passwords: StdMutex<Vec<Vec<String>>>,
+        /// When every download call started.
+        started_at: StdMutex<Vec<tokio::time::Instant>>,
     }
 
     #[async_trait]
@@ -411,6 +425,10 @@ mod tests {
                 .unwrap()
                 .push(lines.iter().map(|l| l.job.password.clone()).collect());
             self.download_calls.fetch_add(1, Ordering::SeqCst);
+            self.started_at
+                .lock()
+                .unwrap()
+                .push(tokio::time::Instant::now());
 
             if let Some(gate) = &self.gate {
                 gate.acquire().await.unwrap().forget();
@@ -504,14 +522,15 @@ mod tests {
             .expect("job not listed")
     }
 
+    /// Polls for 20 s (virtual time in paused tests, where exclusive jobs wait `EXCLUSIVE_GAP`).
     async fn wait_until(mut condition: impl FnMut() -> bool) {
-        for _ in 0..500 {
+        for _ in 0..2000 {
             if condition() {
                 return;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
-        panic!("condition not met within 5s");
+        panic!("condition not met within 20s");
     }
 
     async fn wait_for_status(manager: &DownloadJobManager, id: Uuid, status: DownloadJobStatus) {
@@ -696,7 +715,7 @@ mod tests {
         assert!(h.root.join(id.to_string()).exists());
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn retry_with_password_replaces_failed_line_password() {
         let backend = FakeBackend::default();
         backend
@@ -750,7 +769,7 @@ mod tests {
         assert!(h.manager.cancel(id).await.is_err(), "already cancelled");
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn exclusive_jobs_run_one_at_a_time() {
         let gate = Arc::new(Semaphore::new(0));
         let backend = FakeBackend {
@@ -791,7 +810,35 @@ mod tests {
         wait_for_status(&h.manager, other, DownloadJobStatus::Completed).await;
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
+    async fn exclusive_jobs_wait_ten_seconds_after_the_previous_one() {
+        let mut h = harness("exclusive_gap", FakeBackend::default());
+
+        let first = h
+            .manager
+            .enqueue(request("https://workupload.com/file/AAAA"))
+            .unwrap();
+        wait_for_status(&h.manager, first, DownloadJobStatus::Completed).await;
+        let second = h
+            .manager
+            .enqueue(request("https://workupload.com/file/BBBB"))
+            .unwrap();
+        let other = h.manager.enqueue(request(PIXELDRAIN)).unwrap();
+        wait_for_status(&h.manager, other, DownloadJobStatus::Completed).await;
+        wait_for_status(&h.manager, second, DownloadJobStatus::Completed).await;
+
+        let started = h.backend.started_at.lock().unwrap().clone();
+        assert_eq!(started.len(), 3);
+        // The pixeldrain job does not wait; the second workupload job waits for the gap.
+        assert!(started[1] - started[0] < Duration::from_secs(1));
+        let gap = started[2] - started[0];
+        assert!(
+            (EXCLUSIVE_GAP..EXCLUSIVE_GAP + Duration::from_secs(1)).contains(&gap),
+            "{gap:?}"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
     async fn import_failure_is_import_failed() {
         let backend = FakeBackend::default();
         backend

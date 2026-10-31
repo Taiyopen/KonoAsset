@@ -56,3 +56,6 @@ async-trait.workspace = true
 tauri-plugin-single-instance.workspace = true
 tauri-plugin-updater.workspace = true
 tauri-plugin-window-state = "2"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
