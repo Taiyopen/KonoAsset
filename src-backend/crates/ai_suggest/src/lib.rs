@@ -1,5 +1,6 @@
 mod definitions;
 mod prompt;
+mod resolve;
 
 pub use definitions::{
     AiSuggestErrorKind, AiSuggestion, ExistingCandidates, SuggestedValue, rank_by_usage,
