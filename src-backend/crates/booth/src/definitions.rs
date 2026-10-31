@@ -32,12 +32,13 @@ pub(crate) struct BoothJsonSchema {
     pub images: Vec<BoothPximg>,
     pub category: BoothCategory,
     pub published_at: String,
+    // 缺少欄位或值為 null 都視為空，避免影響既有的 fetch
     #[serde(default)]
-    pub description: String,
+    pub description: Option<String>,
     #[serde(default)]
-    pub tags: Vec<BoothTag>,
+    pub tags: Option<Vec<BoothTag>>,
     #[serde(default)]
-    pub variations: Vec<BoothVariation>,
+    pub variations: Option<Vec<BoothVariation>>,
 }
 
 #[derive(Deserialize)]
@@ -59,7 +60,8 @@ pub(crate) struct BoothCategory {
 
 #[derive(Deserialize)]
 pub(crate) struct BoothTag {
-    pub name: String,
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 #[derive(Deserialize)]

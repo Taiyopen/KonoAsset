@@ -25,7 +25,7 @@ impl BoothFetcher {
             return Ok(cached_result);
         }
 
-        self.request_and_process(id).await
+        Ok(self.request_and_process(id).await?.0)
     }
 
     pub async fn fetch_detail(&mut self, id: u64) -> Result<BoothItemDetail, BoothInfoFetchError> {
@@ -33,19 +33,13 @@ impl BoothFetcher {
             return Ok(cached_result);
         }
 
-        self.request_and_process(id).await?;
-
-        // parse_response_and_process wrote to the cache just now
-        Ok(self
-            .cache
-            .get_detail(id)
-            .expect("cache should be populated right after a successful fetch"))
+        Ok(self.request_and_process(id).await?.1)
     }
 
     async fn request_and_process(
         &mut self,
         id: u64,
-    ) -> Result<BoothAssetInfo, BoothInfoFetchError> {
+    ) -> Result<(BoothAssetInfo, BoothItemDetail), BoothInfoFetchError> {
         let url = construct_api_url(id);
         let response = self.reqwest_client.get(&url).send().await?;
 
@@ -60,7 +54,7 @@ impl BoothFetcher {
     fn parse_response_and_process(
         &mut self,
         body: &str,
-    ) -> Result<BoothAssetInfo, BoothInfoFetchError> {
+    ) -> Result<(BoothAssetInfo, BoothItemDetail), BoothInfoFetchError> {
         let response: BoothJsonSchema = serde_json::from_str(body)?;
 
         let id = response.id;
@@ -73,10 +67,16 @@ impl BoothFetcher {
             name: response.name.clone(),
             shop_name: response.shop.name.clone(),
             category_name: response.category.name,
-            description: response.description,
-            tags: response.tags.into_iter().map(|t| t.name).collect(),
+            description: response.description.unwrap_or_default(),
+            tags: response
+                .tags
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|t| t.name)
+                .collect(),
             variation_names: response
                 .variations
+                .unwrap_or_default()
                 .into_iter()
                 .filter_map(|v| v.name)
                 .filter(|n| !n.is_empty())
@@ -92,8 +92,8 @@ impl BoothFetcher {
             estimated_asset_type,
         };
 
-        self.cache.insert(id, result.clone(), detail);
-        Ok(result)
+        self.cache.insert(id, result.clone(), detail.clone());
+        Ok((result, detail))
     }
 }
 
@@ -128,7 +128,7 @@ mod tests {
         let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
         let body = include_str!("../test/6641548.json");
 
-        let result = fetcher.parse_response_and_process(body).unwrap();
+        let result = fetcher.parse_response_and_process(body).unwrap().0;
 
         assert_eq!(result.id, 6641548);
         assert_eq!(result.name, "KonoAsset - VRChat向けアセット管理ツール");
@@ -170,12 +170,75 @@ mod tests {
     fn test_parse_minimal_json_without_detail_fields() {
         let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
         let body = include_str!("../test/minimal.json");
-        let info = fetcher.parse_response_and_process(body).unwrap();
+        let info = fetcher.parse_response_and_process(body).unwrap().0;
         let detail = fetcher.cache.get_detail(info.id).unwrap();
         assert_eq!(detail.description, "");
         assert!(detail.tags.is_empty());
         assert!(detail.variation_names.is_empty());
         assert_eq!(detail.category_name, None);
+    }
+
+    #[test]
+    fn test_parse_null_detail_fields() {
+        let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
+        let body = r#"{
+            "id": 2,
+            "name": "Null Item",
+            "shop": { "name": "Shop" },
+            "images": [],
+            "category": { "id": 209, "name": null },
+            "published_at": "2025-02-27T19:03:41.000+09:00",
+            "description": null,
+            "tags": null,
+            "variations": null
+        }"#;
+        let (_, detail) = fetcher.parse_response_and_process(body).unwrap();
+        assert_eq!(detail.description, "");
+        assert!(detail.tags.is_empty());
+        assert!(detail.variation_names.is_empty());
+        assert_eq!(detail.category_name, None);
+    }
+
+    #[test]
+    fn test_parse_nameless_tags_are_dropped() {
+        let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
+        let body = r#"{
+            "id": 3,
+            "name": "Tag Item",
+            "shop": { "name": "Shop" },
+            "images": [],
+            "category": { "id": 209 },
+            "published_at": "2025-02-27T19:03:41.000+09:00",
+            "tags": [{ "name": "A" }, { "name": null }, {}]
+        }"#;
+        let (_, detail) = fetcher.parse_response_and_process(body).unwrap();
+        assert_eq!(detail.tags, vec!["A".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_variation_names_filter_null_and_empty() {
+        let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
+        let body = r#"{
+            "id": 4,
+            "name": "Variation Item",
+            "shop": { "name": "Shop" },
+            "images": [],
+            "category": { "id": 209 },
+            "published_at": "2025-02-27T19:03:41.000+09:00",
+            "variations": [{ "name": "A" }, { "name": "" }, { "name": null }]
+        }"#;
+        let (_, detail) = fetcher.parse_response_and_process(body).unwrap();
+        assert_eq!(detail.variation_names, vec!["A".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn test_fetch_detail_returns_from_cache_without_network() {
+        let mut fetcher = BoothFetcher::new("0.0.0+cargo-test");
+        let body = include_str!("../test/6641548.json");
+        let (_, expected) = fetcher.parse_response_and_process(body).unwrap();
+
+        let detail = fetcher.fetch_detail(6641548).await.unwrap();
+        assert_eq!(detail, expected);
     }
 
     #[test]
