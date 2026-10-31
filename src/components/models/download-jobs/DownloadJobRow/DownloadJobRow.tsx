@@ -42,6 +42,12 @@ export const DownloadJobRow: FC<Props> = ({
   const showProgress =
     job.status === 'Downloading' || job.status === 'Importing'
   const isIndeterminate = showProgress && percent === null
+  const canRetry = !needsPassword || password !== ''
+  const retry = () => {
+    if (canRetry) {
+      onRetry(job.id, needsPassword ? password : null)
+    }
+  }
 
   const fileProgress =
     job.currentFile === null
@@ -114,17 +120,18 @@ export const DownloadJobRow: FC<Props> = ({
                 value={password}
                 placeholder={t('download-jobs:password-placeholder')}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    retry()
+                  }
+                }}
               />
             )}
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                onRetry(
-                  job.id,
-                  needsPassword && password !== '' ? password : null,
-                )
-              }
+              disabled={!canRetry}
+              onClick={retry}
             >
               {t('download-jobs:button:retry')}
             </Button>
