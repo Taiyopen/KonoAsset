@@ -1,128 +1,96 @@
-# Contributor Covenant Code of Conduct
+# 貢獻者公約行為準則
 
-## Our Pledge
+## 我們的承諾
 
-We as members, contributors, and leaders pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity
-and orientation.
+身為成員、貢獻者與領導者，我們承諾讓每個人參與我們的社群時，都不會受到騷擾，
+無論其年齡、體型、可見或不可見的身心障礙、族裔、性徵、性別認同與表達、
+經驗多寡、教育程度、社經地位、國籍、外貌、種族、宗教，或性認同與性傾向為何。
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+我們承諾以有助於打造開放、友善、多元、包容且健康社群的方式行事與互動。
 
-## Our Standards
+## 我們的標準
 
-Examples of behavior that contributes to a positive environment for our
-community include:
+有助於營造正面社群環境的行為範例包括：
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes,
-  and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the
-  overall community
+* 對他人展現同理心與善意
+* 尊重不同的意見、觀點與經驗
+* 提出具建設性的回饋，並虛心接受他人的回饋
+* 為自己的錯誤負起責任、向受影響的人道歉，並從中學習
+* 不只考慮對個人最好的事，也重視對整個社群最好的事
 
-Examples of unacceptable behavior include:
+不可接受的行為範例包括：
 
-* The use of sexualized language or imagery, and sexual attention or
-  advances of any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email
-  address, without their explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+* 使用帶有性意味的言語或圖像，以及任何形式的性關注或性挑逗
+* 挑釁、侮辱或貶損的言論，以及人身攻擊或政治攻擊
+* 公開或私下的騷擾
+* 未經他人明確許可，公開其私人資訊，例如住址或電子郵件地址
+* 其他在專業場合中可合理認定為不恰當的行為
 
-## Enforcement Responsibilities
+## 執行責任
 
-Community leaders are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+社群領導者負責闡明並執行我們可接受行為的標準，
+並會針對任何他們認為不恰當、具威脅性、冒犯性或有害的行為，採取適當且公正的糾正措施。
 
-Community leaders have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct, and will communicate reasons for moderation
-decisions when appropriate.
+社群領導者有權利也有責任移除、編輯或拒絕不符合本行為準則的留言、commit、程式碼、
+wiki 編輯、Issue 及其他貢獻，並會在適當時說明做出管理決定的原因。
 
-## Scope
+## 適用範圍
 
-This Code of Conduct applies within all community spaces, and also applies when
-an individual is officially representing the community in public spaces.
-Examples of representing our community include using an official e-mail address,
-posting via an official social media account, or acting as an appointed
-representative at an online or offline event.
+本行為準則適用於所有社群空間，也適用於個人在公共場合正式代表社群時。
+代表社群的例子包括：使用官方電子郵件地址、透過官方社群媒體帳號發文，
+或在線上或線下活動中擔任指定代表。
 
-## Enforcement
+## 執行
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement via
-X (formerly Twitter), Discord, or email.
-All complaints will be reviewed and investigated promptly and fairly.
+如有濫用、騷擾或其他不可接受的行為，可透過 X（前身為 Twitter）、Discord 或電子郵件，
+向負責執行的社群領導者檢舉。
+所有檢舉都會被迅速且公正地審查與調查。
 
-All community leaders are obligated to respect the privacy and security of the
-reporter of any incident.
+所有社群領導者都有義務尊重任何事件檢舉人的隱私與安全。
 
-## Enforcement Guidelines
+## 執行指引
 
-Community leaders will follow these Community Impact Guidelines in determining
-the consequences for any action they deem in violation of this Code of Conduct:
+社群領導者在判斷違反本行為準則之行為應承擔的後果時，會遵循以下社群影響指引：
 
-### 1. Correction
+### 1. 糾正
 
-**Community Impact**: Use of inappropriate language or other behavior deemed
-unprofessional or unwelcome in the community.
+**社群影響**：使用不恰當的言語，或其他被認為不專業或在社群中不受歡迎的行為。
 
-**Consequence**: A private, written warning from community leaders, providing
-clarity around the nature of the violation and an explanation of why the
-behavior was inappropriate. A public apology may be requested.
+**後果**：由社群領導者私下發出書面警告，說明違規的性質及該行為不恰當的原因。
+可能會要求公開道歉。
 
-### 2. Warning
+### 2. 警告
 
-**Community Impact**: A violation through a single incident or series
-of actions.
+**社群影響**：單一事件或一連串行為所構成的違規。
 
-**Consequence**: A warning with consequences for continued behavior. No
-interaction with the people involved, including unsolicited interaction with
-those enforcing the Code of Conduct, for a specified period of time. This
-includes avoiding interactions in community spaces as well as external channels
-like social media. Violating these terms may lead to a temporary or
-permanent ban.
+**後果**：發出警告，並告知持續該行為將面臨的後果。
+在指定期間內，不得與相關人士互動，包括不得主動與執行本行為準則的人互動。
+這包括避免在社群空間及社群媒體等外部管道中互動。
+違反上述條件可能導致暫時或永久停權。
 
-### 3. Temporary Ban
+### 3. 暫時停權
 
-**Community Impact**: A serious violation of community standards, including
-sustained inappropriate behavior.
+**社群影響**：嚴重違反社群標準，包括持續的不恰當行為。
 
-**Consequence**: A temporary ban from any sort of interaction or public
-communication with the community for a specified period of time. No public or
-private interaction with the people involved, including unsolicited interaction
-with those enforcing the Code of Conduct, is allowed during this period.
-Violating these terms may lead to a permanent ban.
+**後果**：在指定期間內，暫時禁止與社群進行任何形式的互動或公開交流。
+此期間內，不得與相關人士進行公開或私下的互動，包括不得主動與執行本行為準則的人互動。
+違反上述條件可能導致永久停權。
 
-### 4. Permanent Ban
+### 4. 永久停權
 
-**Community Impact**: Demonstrating a pattern of violation of community
-standards, including sustained inappropriate behavior,  harassment of an
-individual, or aggression toward or disparagement of classes of individuals.
+**社群影響**：表現出違反社群標準的行為模式，包括持續的不恰當行為、騷擾個人，
+或對特定族群的攻擊或貶低。
 
-**Consequence**: A permanent ban from any sort of public interaction within
-the community.
+**後果**：永久禁止在社群內進行任何形式的公開互動。
 
-## Attribution
+## 出處
 
-This Code of Conduct is adapted from the [Contributor Covenant][homepage],
-version 2.0, available at
-https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.
+本行為準則改編自 [Contributor Covenant][homepage] 2.0 版，原文請見
+https://www.contributor-covenant.org/version/2/0/code_of_conduct.html 。
 
-Community Impact Guidelines were inspired by [Mozilla's code of conduct
-enforcement ladder](https://github.com/mozilla/diversity).
+社群影響指引的靈感來自 [Mozilla 的行為準則執行階梯](https://github.com/mozilla/diversity)。
 
 [homepage]: https://www.contributor-covenant.org
 
-For answers to common questions about this code of conduct, see the FAQ at
-https://www.contributor-covenant.org/faq. Translations are available at
-https://www.contributor-covenant.org/translations.
+關於本行為準則的常見問題，請參閱 https://www.contributor-covenant.org/faq 。
+其他語言的翻譯版本請見 https://www.contributor-covenant.org/translations 。
