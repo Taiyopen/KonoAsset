@@ -5,6 +5,10 @@ use tauri::{AppHandle, Url};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tauri_specta::Event;
 
+// このフォーク版では公式のアップデートを確認しない。
+// 公式の新バージョンをインストールするとフォーク版の機能が失われるため。
+const OFFICIAL_UPDATES_ENABLED: bool = false;
+
 pub struct UpdateHandler {
     app_handle: AppHandle,
     initialized: bool,
@@ -51,6 +55,16 @@ impl UpdateHandler {
         &mut self,
         channel: &UpdateChannel,
     ) -> tauri_plugin_updater::Result<bool> {
+        if !OFFICIAL_UPDATES_ENABLED {
+            log::info!("official update check is disabled in this fork build");
+
+            self.update_available = false;
+            self.update_version = None;
+
+            self.initialized = true;
+            return Ok(false);
+        }
+
         let url = format!(
             "https://releases.konoasset.dev/manifests/{}.json",
             channel.as_str()
