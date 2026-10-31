@@ -31,8 +31,10 @@ pub async fn suggest<T: MessagesTransport>(
     }
 
     let text = extract_output_text(&response.body)?;
-    let raw: RawSuggestion =
-        serde_json::from_str(&text).map_err(|_| AiSuggestErrorKind::InvalidResponse)?;
+    let raw: RawSuggestion = serde_json::from_str(&text).map_err(|e| {
+        log::warn!("Failed to parse the suggestion JSON returned by the model: {e}");
+        AiSuggestErrorKind::InvalidResponse
+    })?;
     Ok(resolve(raw, asset_type, existing))
 }
 

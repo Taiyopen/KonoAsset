@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use reqwest::header::HeaderValue;
 use serde::Deserialize;
 
 use crate::definitions::AiSuggestErrorKind;
@@ -38,11 +39,24 @@ impl ReqwestTransport {
 }
 
 fn map_reqwest_error(e: reqwest::Error) -> AiSuggestErrorKind {
+    // Display には URL は含まれるが、ヘッダー（API キー）は含まれない
+    log::warn!("Claude Messages API request failed: {e}");
+
     if e.is_timeout() {
         AiSuggestErrorKind::Timeout
     } else {
         AiSuggestErrorKind::Network
     }
+}
+
+/// API キーを `x-api-key` ヘッダー値にする。ログやデバッグ出力に出ないよう sensitive にする
+fn api_key_header(api_key: &str) -> Result<HeaderValue, AiSuggestErrorKind> {
+    let mut value = HeaderValue::from_str(api_key).map_err(|_| {
+        log::warn!("The API key contains characters that are not valid in an HTTP header");
+        AiSuggestErrorKind::InvalidApiKey
+    })?;
+    value.set_sensitive(true);
+    Ok(value)
 }
 
 impl MessagesTransport for ReqwestTransport {
@@ -54,7 +68,7 @@ impl MessagesTransport for ReqwestTransport {
         let response = self
             .client
             .post(API_URL)
-            .header("x-api-key", api_key)
+            .header("x-api-key", api_key_header(api_key)?)
             .header("anthropic-version", ANTHROPIC_VERSION)
             .header("content-type", "application/json")
             .json(body)
@@ -78,10 +92,36 @@ struct ErrorEnvelope {
 struct ErrorBody {
     #[serde(rename = "type")]
     kind: String,
+    #[serde(default)]
+    message: Option<String>,
+}
+
+/// ログに出す本文・メッセージの最大文字数
+const LOG_SNIPPET_CHARS: usize = 200;
+
+fn snippet(text: &str) -> String {
+    text.chars().take(LOG_SNIPPET_CHARS).collect()
+}
+
+/// 2xx 以外のレスポンスをログ用に要約する。API のエラー本文にキーは含まれない
+fn describe_http_error(status: u16, body: &str) -> String {
+    match serde_json::from_str::<ErrorEnvelope>(body) {
+        Ok(envelope) => format!(
+            "status {status}, error.type {}, error.message {}",
+            envelope.error.kind,
+            snippet(envelope.error.message.as_deref().unwrap_or("")),
+        ),
+        Err(_) => format!("status {status}, body {}", snippet(body)),
+    }
 }
 
 /// 2xx 以外のレスポンスをエラー種別に対応づける。`error.type` を優先し、読めなければ状態コードで判断する
 pub(crate) fn map_http_error(status: u16, body: &str) -> AiSuggestErrorKind {
+    log::warn!(
+        "Claude Messages API returned an error: {}",
+        describe_http_error(status, body)
+    );
+
     if let Ok(envelope) = serde_json::from_str::<ErrorEnvelope>(body) {
         match envelope.error.kind.as_str() {
             "authentication_error" | "permission_error" => {
@@ -119,12 +159,20 @@ struct ContentBlock {
 
 /// 成功レスポンスから最初の `text` ブロックを取り出す
 pub(crate) fn extract_output_text(body: &str) -> Result<String, AiSuggestErrorKind> {
-    let message: MessageResponse =
-        serde_json::from_str(body).map_err(|_| AiSuggestErrorKind::InvalidResponse)?;
+    let message: MessageResponse = serde_json::from_str(body).map_err(|e| {
+        log::warn!("Failed to parse the Claude Messages API response: {e}");
+        AiSuggestErrorKind::InvalidResponse
+    })?;
 
     match message.stop_reason.as_deref() {
-        Some("refusal") => return Err(AiSuggestErrorKind::Refused),
-        Some("max_tokens") => return Err(AiSuggestErrorKind::Truncated),
+        Some("refusal") => {
+            log::warn!("Claude Messages API stopped with stop_reason refusal");
+            return Err(AiSuggestErrorKind::Refused);
+        }
+        Some("max_tokens") => {
+            log::warn!("Claude Messages API stopped with stop_reason max_tokens");
+            return Err(AiSuggestErrorKind::Truncated);
+        }
         _ => {}
     }
 
@@ -197,6 +245,42 @@ mod tests {
                 r#"{"type":"error","error":{"type":"invalid_request_error"}}"#
             ),
             AiSuggestErrorKind::InvalidResponse
+        );
+    }
+
+    #[test]
+    fn api_key_header_is_sensitive_and_rejects_invalid_characters() {
+        let value = api_key_header("sk-test").unwrap();
+        assert!(value.is_sensitive());
+        assert_eq!(value.to_str().unwrap(), "sk-test");
+        assert_eq!(format!("{value:?}"), "Sensitive");
+
+        assert_eq!(
+            api_key_header("sk-test\nnext"),
+            Err(AiSuggestErrorKind::InvalidApiKey)
+        );
+        assert_eq!(
+            api_key_header("sk-test\u{7f}"),
+            Err(AiSuggestErrorKind::InvalidApiKey)
+        );
+    }
+
+    #[test]
+    fn http_error_description_uses_error_fields_or_a_truncated_body() {
+        let described = describe_http_error(
+            400,
+            r#"{"type":"error","error":{"type":"invalid_request_error","message":"bad field"}}"#,
+        );
+        assert_eq!(
+            described,
+            "status 400, error.type invalid_request_error, error.message bad field"
+        );
+
+        let long_body = "x".repeat(500);
+        let described = describe_http_error(502, &long_body);
+        assert_eq!(
+            described,
+            format!("status 502, body {}", "x".repeat(LOG_SNIPPET_CHARS))
         );
     }
 
