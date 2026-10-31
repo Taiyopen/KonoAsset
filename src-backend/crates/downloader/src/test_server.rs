@@ -1,5 +1,7 @@
 //! Minimal HTTP/1.1 server for tests (one request per connection, closes after responding).
 
+use std::sync::{Arc, Mutex};
+
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -24,21 +26,30 @@ impl Route {
 /// Unknown paths get 404. A route with a `transfer-encoding: chunked` header is sent chunked,
 /// i.e. without a Content-Length.
 pub(crate) async fn serve(routes: Vec<Route>) -> String {
+    serve_logged(routes).await.0
+}
+
+/// Like [`serve`], also returning the `Range` request header (if any) of every request received,
+/// in order.
+pub(crate) async fn serve_logged(routes: Vec<Route>) -> (String, Arc<Mutex<Vec<Option<String>>>>) {
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let task_log = log.clone();
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
         loop {
             let Ok((stream, _)) = listener.accept().await else { break };
             let routes = routes.clone();
+            let log = task_log.clone();
             tokio::spawn(async move {
-                let _ = handle(stream, &routes).await;
+                let _ = handle(stream, &routes, &log).await;
             });
         }
     });
-    format!("http://{addr}")
+    (format!("http://{addr}"), log)
 }
 
-async fn handle(mut stream: TcpStream, routes: &[Route]) -> std::io::Result<()> {
+async fn handle(mut stream: TcpStream, routes: &[Route], log: &Mutex<Vec<Option<String>>>) -> std::io::Result<()> {
     let mut buf = Vec::new();
     let mut tmp = [0u8; 4096];
     while !buf.windows(4).any(|w| w == b"\r\n\r\n") {
@@ -52,10 +63,13 @@ async fn handle(mut stream: TcpStream, routes: &[Route]) -> std::io::Result<()> 
     let mut lines = text.split("\r\n");
     let target = lines.next().unwrap_or("").split(' ').nth(1).unwrap_or("/");
     let path = target.split('?').next().unwrap_or("/");
-    let range_offset = lines
+    let range_header = lines
         .filter_map(|l| l.split_once(':'))
         .find(|(k, _)| k.eq_ignore_ascii_case("range"))
-        .and_then(|(_, v)| v.trim().strip_prefix("bytes=").map(str::to_owned))
+        .map(|(_, v)| v.trim().to_string());
+    log.lock().unwrap().push(range_header.clone());
+    let range_offset = range_header
+        .and_then(|v| v.strip_prefix("bytes=").map(str::to_owned))
         .and_then(|v| v.split('-').next().and_then(|n| n.parse::<usize>().ok()));
 
     let Some(route) = routes.iter().find(|r| r.path == path) else {

@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use regex::Regex;
-use reqwest::header::{HeaderMap, CONTENT_DISPOSITION, CONTENT_TYPE, RANGE};
+use reqwest::header::{HeaderMap, CONTENT_DISPOSITION, CONTENT_RANGE, CONTENT_TYPE, RANGE};
 use reqwest::StatusCode;
 use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -147,7 +147,16 @@ pub async fn save_stream(
 
     let mut size = opts.size;
     if status == StatusCode::RANGE_NOT_SATISFIABLE {
-        // The .part is already the complete file.
+        // The .part should already be the complete file; `Content-Range: bytes */<len>` tells
+        // the real length so an oversized stale .part is detected below.
+        if size.is_none() {
+            size = response
+                .headers()
+                .get(CONTENT_RANGE)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.rsplit('/').next())
+                .and_then(|n| n.trim().parse::<u64>().ok());
+        }
     } else {
         if status == StatusCode::NOT_FOUND {
             return Err(DownloadError::NotFound(url.to_string()));
@@ -181,6 +190,10 @@ pub async fn save_stream(
 
     let actual = tokio::fs::metadata(&part).await?.len();
     if let Some(expected) = size {
+        if actual > expected {
+            // A stale/oversized .part can never become correct by resuming: start clean next time.
+            let _ = tokio::fs::remove_file(&part).await;
+        }
         if actual != expected {
             return Err(DownloadError::Retryable(format!("size mismatch: got {actual} bytes, expected {expected}")));
         }
@@ -198,7 +211,7 @@ pub async fn save_stream(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_server::{serve, Route};
+    use crate::test_server::{serve, serve_logged, Route};
     use reqwest::header::{HeaderMap, HeaderValue, CONTENT_DISPOSITION};
     use std::sync::Mutex;
 
@@ -250,13 +263,20 @@ mod tests {
         let b = body();
         let mut route = Route::ok("/f.bin", b.clone());
         route.honor_range = true;
-        let base = serve(vec![route]).await;
+        let (base, log) = serve_logged(vec![route]).await;
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
         std::fs::write(part_of(&target), &b[..4]).unwrap();
-        save_stream(&client(), &format!("{base}/f.bin"), &target, opts(), &noop).await.unwrap();
+        let calls = Mutex::new(Vec::new());
+        let progress = |done: u64, total: Option<u64>| calls.lock().unwrap().push((done, total));
+        save_stream(&client(), &format!("{base}/f.bin"), &target, opts(), &progress).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
         assert!(!part_of(&target).exists());
+        assert_eq!(*log.lock().unwrap(), vec![Some("bytes=4-".to_string())]);
+        let calls = calls.lock().unwrap();
+        // starts from the resumed offset, with the total derived from offset + content-length
+        assert_eq!(calls[0], (4, Some(b.len() as u64)));
+        assert_eq!(*calls.last().unwrap(), (b.len() as u64, Some(b.len() as u64)));
     }
 
     #[tokio::test]
@@ -276,13 +296,39 @@ mod tests {
         let b = body();
         let mut route = Route::ok("/f.bin", b.clone());
         route.honor_range = true;
-        let base = serve(vec![route]).await;
+        let (base, log) = serve_logged(vec![route]).await;
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
         std::fs::write(part_of(&target), &b).unwrap();
         let o = SaveOptions { size: Some(b.len() as u64), ..opts() };
-        save_stream(&client(), &format!("{base}/f.bin"), &target, o, &noop).await.unwrap();
+        let calls = Mutex::new(Vec::new());
+        let progress = |done: u64, total: Option<u64>| calls.lock().unwrap().push((done, total));
+        save_stream(&client(), &format!("{base}/f.bin"), &target, o, &progress).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
+        assert!(!part_of(&target).exists());
+        assert_eq!(*log.lock().unwrap(), vec![Some(format!("bytes={}-", b.len()))]);
+        assert!(calls.lock().unwrap().is_empty(), "no body should have been streamed");
+    }
+
+    #[tokio::test]
+    async fn save_stream_oversized_part_is_discarded() {
+        let b = body();
+        let mut route = Route::ok("/f.bin", b.clone());
+        route.honor_range = true;
+        let base = serve(vec![route]).await;
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("f.bin");
+        std::fs::write(part_of(&target), vec![7u8; b.len() + 50]).unwrap();
+        let url = format!("{base}/f.bin");
+        // 416 with Content-Range tells the real length, so the stale .part is detected
+        let err = save_stream(&client(), &url, &target, opts(), &noop).await.unwrap_err();
+        assert!(matches!(err, DownloadError::Retryable(_)), "{err:?}");
+        assert!(!part_of(&target).exists());
+        assert!(!target.exists());
+        // the retry starts clean
+        save_stream(&client(), &url, &target, opts(), &noop).await.unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b);
+        assert!(!part_of(&target).exists());
     }
 
     #[tokio::test]
