@@ -11,6 +11,7 @@ repository = "https://github.com/siloneco/KonoAsset/"
 
 [workspace.dependencies]
 # Local crates
+ai_suggest = { path = "./crates/ai_suggest", version = "0.0.0" }
 booth = { path = "./crates/booth", version = "0.0.0" }
 changelog = { path = "./crates/changelog", version = "0.0.0" }
 file = { path = "./crates/file", version = "0.0.0" }

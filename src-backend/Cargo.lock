@@ -24,6 +24,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai_suggest"
+version = "0.0.0"
+dependencies = [
+ "booth",
+ "log",
+ "model",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "specta",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
 name = "aligned"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

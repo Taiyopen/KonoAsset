@@ -1,0 +1,24 @@
+[package]
+name = "ai_suggest"
+version = "0.0.0"
+repository.workspace = true
+description = "AI-assisted asset field suggestion using the Claude API"
+
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Local crates
+model.workspace = true
+booth.workspace = true
+
+# External crates
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+log.workspace = true
+specta.workspace = true
+thiserror.workspace = true
