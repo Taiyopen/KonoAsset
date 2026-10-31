@@ -1,6 +1,7 @@
 //! The file hosting sites and the factory that picks one for a [`SiteKind`].
 
 mod direct;
+mod gdrive;
 mod onedrive;
 mod pixeldrain;
 
@@ -22,8 +23,9 @@ pub fn create(kind: SiteKind) -> Box<dyn Site> {
         SiteKind::Direct => Box::new(direct::Direct),
         SiteKind::Pixeldrain => Box::new(pixeldrain::Pixeldrain::new(PIXELDRAIN_API.to_string())),
         SiteKind::OneDrive => Box::new(onedrive::OneDrive::new()),
-        // Replaced by real implementations in later tasks.
-        SiteKind::GoogleDrive | SiteKind::Workupload => Box::new(NotImplemented),
+        SiteKind::GoogleDrive => Box::new(gdrive::GoogleDrive::new()),
+        // Replaced by a real implementation in a later task.
+        SiteKind::Workupload => Box::new(NotImplemented),
     }
 }
 
@@ -138,7 +140,7 @@ mod tests {
     async fn stub_sites_are_not_implemented() {
         let ctx = Ctx { app: None, http: crate::client() };
         let job = Job { kind: crate::link::JobKind::File, id: "x".into(), password: String::new() };
-        for kind in [SiteKind::GoogleDrive, SiteKind::Workupload] {
+        for kind in [SiteKind::Workupload] {
             let err = create(kind).list_files(&ctx, &job).await.unwrap_err();
             assert_eq!(err, DownloadError::Fatal("not implemented".into()));
         }
