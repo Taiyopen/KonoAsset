@@ -21,18 +21,35 @@ export const siteDisplayName = (
   }
 }
 
-// 行の先頭（半角・全角空白の前）のURLから、パスの最後の区切りを取り出す
-const lastPathSegment = (lineText: string): string => {
-  const url = lineText.trim().split(/\s+/)[0] ?? ''
-
-  let path = url
+const decode = (segment: string): string => {
   try {
-    path = new URL(url).pathname
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
+
+// 行の先頭（半角・全角空白の前）のURLから表示用の名前を取り出す。
+// Google Drive は view / edit ではなくファイル・フォルダの ID、それ以外はパスの最後の区切り
+const linkName = (site: SiteKind, lineText: string): string => {
+  const text = lineText.trim().split(/\s+/)[0] ?? ''
+
+  let url: URL | null = null
+  try {
+    url = new URL(text)
   } catch {
     // URLとして解釈できない場合は文字列全体から取り出す
   }
 
-  return path.split('/').filter(Boolean).pop() ?? ''
+  const segments = (url?.pathname ?? text).split('/').filter(Boolean)
+
+  if (site === 'GoogleDrive') {
+    const index = segments.findIndex((s) => s === 'd' || s === 'folders')
+    const id = index === -1 ? undefined : segments[index + 1]
+    return id ?? url?.searchParams.get('id') ?? ''
+  }
+
+  return decode(segments.pop() ?? '')
 }
 
 export const representativeLinkLabel = (
@@ -46,8 +63,11 @@ export const representativeLinkLabel = (
     return { label: '', count: validLines.length }
   }
 
+  const site = siteDisplayName(first.site, t)
+  const name = linkName(first.site, first.text)
+
   return {
-    label: `${siteDisplayName(first.site, t)}：${lastPathSegment(first.text)}`,
+    label: name === '' ? site : `${site}：${name}`,
     count: validLines.length,
   }
 }

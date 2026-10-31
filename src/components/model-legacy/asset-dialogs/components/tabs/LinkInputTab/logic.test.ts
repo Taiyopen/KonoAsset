@@ -90,6 +90,39 @@ describe('representativeLinkLabel', () => {
     ).toBe('pixeldrain：abc')
   })
 
+  const labelOf = (site: ParsedLine['site'], text: string) =>
+    representativeLinkLabel([line({ valid: true, site, text })], (k) => k).label
+
+  it('uses the Google Drive id, not view or edit', () => {
+    expect(
+      labelOf('GoogleDrive', 'https://drive.google.com/file/d/1XyZ/view'),
+    ).toBe('Google Drive：1XyZ')
+    expect(
+      labelOf('GoogleDrive', 'https://docs.google.com/file/d/1XyZ/edit?usp=x'),
+    ).toBe('Google Drive：1XyZ')
+    expect(
+      labelOf('GoogleDrive', 'https://drive.google.com/drive/u/0/folders/1F'),
+    ).toBe('Google Drive：1F')
+    expect(
+      labelOf('GoogleDrive', 'https://drive.google.com/open?id=1Q&usp=x'),
+    ).toBe('Google Drive：1Q')
+  })
+
+  it('shows only the site name when the url has no path', () => {
+    expect(labelOf('OneDrive', 'https://onedrive.live.com/?id=abc')).toBe(
+      'OneDrive',
+    )
+  })
+
+  it('decodes direct link names and keeps malformed escapes', () => {
+    expect(
+      labelOf('Direct', 'https://example.com/%E7%B4%A0%E6%9D%90.zip'),
+    ).toBe('addasset:link-input:site:direct：素材.zip')
+    expect(labelOf('Direct', 'https://example.com/100%.zip')).toBe(
+      'addasset:link-input:site:direct：100%.zip',
+    )
+  })
+
   it('returns empty label when no valid lines', () => {
     expect(representativeLinkLabel([line({})], (k) => k)).toEqual({
       label: '',
