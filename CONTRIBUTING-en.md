@@ -1,130 +1,132 @@
-日本語のガイドは [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+# KonoAsset 貢獻指南
 
----
-# Contribution Guide for KonoAsset
+感謝你有興趣為 KonoAsset 做出貢獻。
 
-Thank you for your interest in contributing to KonoAsset.
-
-This document outlines the guidelines to maintain a stable development experience.
-Additionally, when contributing, you must follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+本文件說明為了維持穩定的開發體驗，希望大家遵守的事項。  
+此外，參與貢獻時請務必遵守 [Code of Conduct](CODE_OF_CONDUCT.md)。
 
 
-## Language Usage
+## 關於使用語言
 
-This project primarily uses Japanese.
-However, this does **not** mean that communication must be in Japanese.
+本專案以日文作為主要語言。  
+但這**並不**代表你必須用日文溝通。
 
-You are free to use your native language when creating Issues or PRs, and you are not required to respond in Japanese to Japanese comments.
-This allows readers to use translation tools of their choice to understand your intent as accurately as possible.
+你可以用自己的母語撰寫 Issue 或 PR，回覆日文留言時也不需要使用日文。  
+如此一來，讀者可以自由使用翻譯工具，盡可能準確地理解你的意思。
 
 
-## How to Contribute
+## 貢獻方式
 
-Contributing to KonoAsset does not necessarily mean modifying the code. You can contribute in various ways, such as:
+為 KonoAsset 做出貢獻不一定要修改程式碼。例如：
 
-- Writing code and creating a Pull Request
-- Creating an Issue for bug reports or feature requests
-- Creating or improving translation files
-- Writing or improving documentation
-- Answering questions in [Discussions](https://github.com/siloneco/KonoAsset/discussions)
+- 撰寫程式碼並建立 Pull Request
+- 建立回報錯誤或功能需求的 Issue
+- 建立或修正翻譯檔案
+- 撰寫或改善文件
+- 回答 [Discussions](https://github.com/siloneco/KonoAsset/discussions) 中的提問
+
+貢獻的形式有很多種。
 
 
 ### Issues
 
-Before modifying code, we recommend creating an [Issue](https://github.com/siloneco/KonoAsset/issues) to discuss the proposed changes.  
-For unrelated questions or troubleshooting, please use [Discussions](https://github.com/siloneco/KonoAsset/discussions).
+修改程式碼之前，建議先建立 [Issue](https://github.com/siloneco/KonoAsset/issues)，討論要做哪些變更。  
+與程式碼變更無關的提問或疑難排解，請到 [Discussions](https://github.com/siloneco/KonoAsset/discussions) 進行。
 
-If you decide to work on an Issue, please assign yourself to avoid conflicts.
-If you lack permission to self-assign, leave a comment to indicate your intent.
+著手處理某個 Issue 時，請將自己指派為負責人，以避免工作重複。  
+如果你沒有指派的權限，請留言表明你正在處理。
 
 > [!WARNING]
-> Before creating a new Issue, check for duplicates.  
-> Also, even if an implementation approach is decided, do not close the Issue until the code is fully merged.
+> 建立新的 Issue 之前，請先確認是否已有重複的 Issue。  
+> 此外，即使實作方向已經決定，在程式碼完全合併之前也請不要關閉 Issue。
 
 
 ### Pull Requests
 
-When creating a Pull Request, please follow these guidelines:
-1. Ensure there is a related Issue or Security Advisory (create one if necessary).
-2. Keep changes minimal to facilitate review.
-3. (If possible) Use a prefix for branch names (e.g., `feat/`, `fix/`, `perf/`, `docs/`).
-4. (If possible) Attach screenshots for UI changes.
+建立 Pull Request 時，請遵守以下事項：
 
-If new language file entries are added, you do not need to fill out all translations yourself.  
-After creating a PR, you can request translation contributions from others.
+1. 須有與該變更相關的 Issue 或 Security Advisory（沒有的話請先建立）
+2. 為了方便審查，請將變更控制在最小範圍
+3. （盡可能）在分支名稱加上前綴（`feat/`、`fix/`、`perf/`、`docs/` 等）
+4. （盡可能）如有 UI 變更，請附上螢幕截圖
 
-
-### Security Reports
-
-If you discover a vulnerability or security-related bug, report it through [GitHub Security Advisories](https://github.com/siloneco/KonoAsset/security/advisories/new).  
-If you plan to commit a fix yourself, follow these guidelines based on the severity:
-- If revealing a PoC (Proof of Concept) before the fix is released is risky:
-  - Create the fix in a [Private Fork](https://docs.github.com/en/code-security/security-advisories/working-with-repository-security-advisories/collaborating-in-a-temporary-private-fork-to-resolve-a-repository-security-vulnerability) and share it with contributors.
-- If revealing a PoC before the fix is acceptable for minor vulnerabilities:
-  - Follow the standard PR process.
-- If uncertain about the risk level:
-  - Do not disclose publicly and commit to a Private Fork instead.
-
- 
-### License
-
-Your contributions will be published under the same license as the project.  
-See the [LICENSE](LICENSE) file for details.
+語言檔案新增項目時，你不需要自己填完所有語言檔案。  
+建立 PR 後，可以請熟悉該語言的人協助製作翻譯檔案。
 
 
-## Setting Up the Development Environment
+### 安全性相關回報
 
-Install the following dependencies:
+如果你發現漏洞或相關的錯誤，請透過 [GitHub Security Advisories](https://github.com/siloneco/KonoAsset/security/advisories/new) 回報問題。  
+如果你打算自己提交修正，請依情況採取以下做法：
+
+- 若認為在修正發布前公開 PoC（Proof of Concept，概念驗證）有危險
+  - 請在 [Private Fork](https://docs.github.com/zh/code-security/security-advisories/working-with-repository-security-advisories/collaborating-in-a-temporary-private-fork-to-resolve-a-repository-security-vulnerability) 等地方建立修正的 commit，並分享給貢獻者
+- 若是在修正發布前公開 PoC 也沒有問題的輕微漏洞
+  - 請依照一般建立 PR 的流程進行
+- 若無法判斷屬於哪一種
+  - 請不要公開，改為提交到 Private Fork
+
+
+### 授權
+
+你的貢獻會以與本專案相同的授權條款公開。  
+詳情請參閱 [LICENSE](LICENSE) 檔案。
+
+
+## 設定開發環境
+
+請安裝以下工具：
 
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Node.js (v23)](https://nodejs.org/en/download/package-manager)
-- [pnpm](https://pnpm.io/ja/installation) (`npm i -g pnpm`)
+- [pnpm](https://pnpm.io/installation)（`npm i -g pnpm`）
 
-We recommend using [VSCode](https://code.visualstudio.com/), but you can use any editor you prefer.
+建議使用 [VSCode](https://code.visualstudio.com/) 作為編輯器，但你也可以依喜好使用其他編輯器。
 
 
-### Installing Frontend Packages
+### 安裝前端套件
 
-Run the following command to install Node.js packages:
+使用以下指令安裝 Node.js 套件
 
 ```
 pnpm i
 ```
 
-Rust dependencies will be installed automatically when running Tauri.
+Rust 套件會在執行 Tauri 時自動安裝
 
 
-### Running in Dev Mode
+### 以開發模式執行
 
-Run `pnpm tauri dev` to start the application.
+執行 `pnpm tauri dev` 即可啟動應用程式。
 
-Frontend code changes will trigger automatic updates.  
-If updates do not appear, try refreshing with `Ctrl-R`.
+修改前端程式碼後會自動更新。  
+如果沒有反映出來，可以在應用程式中按 `Ctrl-R` 重新載入整個畫面，通常就能解決。  
 
-Backend code changes will trigger an automatic restart.
+修改後端程式碼後，應用程式會自動重新啟動。
 
 > [!NOTE]
-> Modifying backend code triggers a dev build on every save, which can slow development.  
-> It is recommended to restart only when necessary.
+> 修改後端程式碼時，每次存檔都會執行一次開發版建置，會讓開發體驗變差，建議只在需要測試時才執行。
 
-### Code Analysis (Frontend)
 
-Run the following commands to analyze frontend code:
+### 程式碼分析（前端）
+
+使用以下指令可以分析前端程式碼。
 
 ```bash
-# フォーマット実行
+# 執行格式化
 pnpm run fmt
 
-# Lintエラーの確認
+# 檢查 Lint 錯誤
 pnpm run lint
 
-# TypeScriptのタイプテスト
+# TypeScript 型別檢查
 pnpm run type-check
 ```
 
 
-### Building
-Run the following command to create an executable:
+### 建置
+
+使用以下指令可以建立 exe 執行檔。
 
 ```
 pnpm tauri build --no-bundle

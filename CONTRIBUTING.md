@@ -1,135 +1,132 @@
-For the English guide, please refer to [CONTRIBUTING-en.md](CONTRIBUTING-en.md)
+# KonoAsset 貢獻指南
 
----
-# Contribution Guide for KonoAsset
+感謝你有興趣為 KonoAsset 做出貢獻。
 
-KonoAssetへのコントリビューションに興味を持っていただきありがとうございます。
-
-このドキュメントでは、安定した開発体験を維持するために守って欲しいことについて記述しています。  
-また、コントリビューションを行う場合必ず [Code of Conduct](CODE_OF_CONDUCT.md) を遵守してください。
+本文件說明為了維持穩定的開發體驗，希望大家遵守的事項。  
+此外，參與貢獻時請務必遵守 [Code of Conduct](CODE_OF_CONDUCT.md)。
 
 
-## 使用言語について
+## 關於使用語言
 
-このプロジェクトでは日本語を主要言語として使用します。  
-ただし、これは日本語でのコミュニケーションを強要するものでは**ありません**。
+本專案以日文作為主要語言。  
+但這**並不**代表你必須用日文溝通。
 
-あなたは母国語を使用して Issue や PR を書くことができ、日本語のコメントに対しても日本語で返信する必要はありません。  
-これにより読み手は自由な翻訳ツールを利用し、最大限あなたの正確な意図を読みとることができます。
+你可以用自己的母語撰寫 Issue 或 PR，回覆日文留言時也不需要使用日文。  
+如此一來，讀者可以自由使用翻譯工具，盡可能準確地理解你的意思。
 
 
-## コントリビューションの方法
+## 貢獻方式
 
-KonoAssetへのコントリビューションを行う時、必ずしもコードに変更を加える必要はありません。例えば、
+為 KonoAsset 做出貢獻不一定要修改程式碼。例如：
 
-- コードを書いて Pull Request を作成する
-- バグ報告や機能リクエストに関する Issue を作成する
-- 翻訳ファイルを作成または修正する
-- ドキュメントを作成または改善する
-- [Discussions](https://github.com/siloneco/KonoAsset/discussions) に寄せられた質問等に回答する
+- 撰寫程式碼並建立 Pull Request
+- 建立回報錯誤或功能需求的 Issue
+- 建立或修正翻譯檔案
+- 撰寫或改善文件
+- 回答 [Discussions](https://github.com/siloneco/KonoAsset/discussions) 中的提問
 
-など、様々なコントリビューションの形があります。
+貢獻的形式有很多種。
 
 
 ### Issues
 
-コードに変更を加える前には [Issue](https://github.com/siloneco/KonoAsset/issues) を作成し、どのような変更を加えるのかについて議論を行うことを推奨します。  
-コードの変更に無関係な質問やトラブルシューティングなどは [Discussions](https://github.com/siloneco/KonoAsset/discussions) で行ってください。
+修改程式碼之前，建議先建立 [Issue](https://github.com/siloneco/KonoAsset/issues)，討論要做哪些變更。  
+與程式碼變更無關的提問或疑難排解，請到 [Discussions](https://github.com/siloneco/KonoAsset/discussions) 進行。
 
-Issue の解決に取り組む場合には、作業の衝突を避けるために自分自身をアサインしてください。  
-もしアサインする権限がない場合はコメント等を残し、その旨を表明してください。
+著手處理某個 Issue 時，請將自己指派為負責人，以避免工作重複。  
+如果你沒有指派的權限，請留言表明你正在處理。
 
 > [!WARNING]
-> 新しい Issue を作成する前に、重複する Issue が無いか確認してください。  
-> また、実装方針が決まったとしても、コードが完全にマージされるまで Issue は Close しないでください。
+> 建立新的 Issue 之前，請先確認是否已有重複的 Issue。  
+> 此外，即使實作方向已經決定，在程式碼完全合併之前也請不要關閉 Issue。
 
 
 ### Pull Requests
 
-Pull Request を作成する場合、以下のことを守ってください。
+建立 Pull Request 時，請遵守以下事項：
 
-1. その変更に関連する Issue または Security Advisory が存在すること (無い場合は作成してください)
-2. レビューしやすいように、最低限の変更に留めること
-3. (可能な限り) ブランチ名に prefix を付けること ( `feat/`, `fix/`, `perf/`, `docs/` など )
-4. (可能な限り) UI の変更がある場合、スクリーンショットを添付すること
+1. 須有與該變更相關的 Issue 或 Security Advisory（沒有的話請先建立）
+2. 為了方便審查，請將變更控制在最小範圍
+3. （盡可能）在分支名稱加上前綴（`feat/`、`fix/`、`perf/`、`docs/` 等）
+4. （盡可能）如有 UI 變更，請附上螢幕截圖
 
-言語ファイルに新しく項目が増える場合、必ずしも全ての言語ファイルをあなたが埋める必要はありません。  
-PR 作成後に、その言語に長けた人へ翻訳ファイルの作成を依頼することができます。
-
-
-### セキュリティに関係する報告
-
-もし脆弱性やそれに関係したバグを発見した場合、[GitHub Security Advisories](https://github.com/siloneco/KonoAsset/security/advisories/new) から問題を報告してください。  
-また、修正のコミットを自身で作成する場合、状況に応じて以下の対応を行ってください。
-
-- 修正配信前に PoC (Proof of Concept) が公開されることが危険だと考えられる場合
-  - [Private Fork](https://docs.github.com/ja/code-security/security-advisories/working-with-repository-security-advisories/collaborating-in-a-temporary-private-fork-to-resolve-a-repository-security-vulnerability) 等で修正のコミットを作成し、コントリビューターへ共有してください
-- 修正配信前に PoC を公開しても問題ないと考えられる軽度な脆弱性の場合
-  - 通常の PR 作成の手順に従ってください
-- 上記の判断がつかない場合
-  - 一般公開せず、Private Fork へコミットしてください
+語言檔案新增項目時，你不需要自己填完所有語言檔案。  
+建立 PR 後，可以請熟悉該語言的人協助製作翻譯檔案。
 
 
-### ライセンス
+### 安全性相關回報
 
-あなたのコントリビューションはプロジェクトと同じライセンスの下で公開されます。  
-詳細については [LICENSE](LICENSE) ファイルを参照してください。
+如果你發現漏洞或相關的錯誤，請透過 [GitHub Security Advisories](https://github.com/siloneco/KonoAsset/security/advisories/new) 回報問題。  
+如果你打算自己提交修正，請依情況採取以下做法：
+
+- 若認為在修正發布前公開 PoC（Proof of Concept，概念驗證）有危險
+  - 請在 [Private Fork](https://docs.github.com/zh/code-security/security-advisories/working-with-repository-security-advisories/collaborating-in-a-temporary-private-fork-to-resolve-a-repository-security-vulnerability) 等地方建立修正的 commit，並分享給貢獻者
+- 若是在修正發布前公開 PoC 也沒有問題的輕微漏洞
+  - 請依照一般建立 PR 的流程進行
+- 若無法判斷屬於哪一種
+  - 請不要公開，改為提交到 Private Fork
 
 
-## 開発環境のセットアップ
+### 授權
 
-以下をインストールしてください。
+你的貢獻會以與本專案相同的授權條款公開。  
+詳情請參閱 [LICENSE](LICENSE) 檔案。
+
+
+## 設定開發環境
+
+請安裝以下工具：
 
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Node.js (v23)](https://nodejs.org/en/download/package-manager)
-- [pnpm](https://pnpm.io/ja/installation) (`npm i -g pnpm`)
+- [pnpm](https://pnpm.io/installation)（`npm i -g pnpm`）
 
-エディタは [VSCode](https://code.visualstudio.com/) を推奨していますが、好みに応じて自由なものを利用できます。
+建議使用 [VSCode](https://code.visualstudio.com/) 作為編輯器，但你也可以依喜好使用其他編輯器。
 
 
-### フロントエンドのパッケージインストール
+### 安裝前端套件
 
-以下のコマンドで Node.js のパッケージをインストールします
+使用以下指令安裝 Node.js 套件
 
 ```
 pnpm i
 ```
 
-Rust のパッケージは Tauri を実行した時にインストールされます
+Rust 套件會在執行 Tauri 時自動安裝
 
 
-### Devモードでの実行
+### 以開發模式執行
 
-`pnpm tauri dev` を実行することによりアプリケーションを起動できます。
+執行 `pnpm tauri dev` 即可啟動應用程式。
 
-フロントエンドのソースコードを変更した場合は自動で更新されます。  
-反映されない場合、アプリケーション側で `Ctrl-R` を実行し、全体リロードを行うことで解決する場合があります。  
+修改前端程式碼後會自動更新。  
+如果沒有反映出來，可以在應用程式中按 `Ctrl-R` 重新載入整個畫面，通常就能解決。  
 
-バックエンドのコードを変更した場合はアプリケーションが自動で再起動されます。
+修改後端程式碼後，應用程式會自動重新啟動。
 
 > [!NOTE]
-> バックエンドのコードを変更する場合、セーブするたびに dev ビルドが走り開発体験が悪いため、テストしたい時のみ実行することをおすすめします。
+> 修改後端程式碼時，每次存檔都會執行一次開發版建置，會讓開發體驗變差，建議只在需要測試時才執行。
 
 
-### コードの解析 (フロントエンド)
+### 程式碼分析（前端）
 
-以下のコマンドでフロントエンドのコードの解析が行えます。
+使用以下指令可以分析前端程式碼。
 
 ```bash
-# フォーマット実行
+# 執行格式化
 pnpm run fmt
 
-# Lintエラーの確認
+# 檢查 Lint 錯誤
 pnpm run lint
 
-# TypeScriptのタイプテスト
+# TypeScript 型別檢查
 pnpm run type-check
 ```
 
 
-### ビルド
+### 建置
 
-以下のコマンドで exe の作成が可能です。
+使用以下指令可以建立 exe 執行檔。
 
 ```
 pnpm tauri build --no-bundle
