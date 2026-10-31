@@ -5,7 +5,7 @@
 //   node scripts/release-fork.mjs              build, sign and publish
 //   node scripts/release-fork.mjs --build-only build and sign only (nothing is uploaded)
 //
-// The private key is read from KONOASSET_SIGNING_KEY_PATH, or ~/.tauri/konoasset-fork.key.
+// The private key is read from KONOASSET_SIGNING_KEY_PATH, or signing/konoasset-fork.key.
 // Set TAURI_SIGNING_PRIVATE_KEY_PASSWORD if the key has a password.
 
 import { execFileSync, execSync } from 'child_process'
@@ -75,7 +75,7 @@ if (!buildOnly) {
 
 const keyPath =
   process.env.KONOASSET_SIGNING_KEY_PATH ??
-  path.join(os.homedir(), '.tauri', 'konoasset-fork.key')
+  path.join('signing', 'konoasset-fork.key')
 process.env.TAURI_SIGNING_PRIVATE_KEY = fs.readFileSync(keyPath, 'utf8')
 process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD ??= ''
 
