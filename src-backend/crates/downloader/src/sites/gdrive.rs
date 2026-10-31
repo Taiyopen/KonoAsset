@@ -214,10 +214,14 @@ impl GoogleDrive {
             Fetched::File { url, name, size } => return Ok((url, name, size)),
             Fetched::Page(html) => html,
         };
-        if is_quota_page(&html) {
-            return Err(DownloadError::RateLimited(format!("too many downloads of {id} recently")));
-        }
-        let confirm_url = confirm_form_url_at(&html, &self.download_base).ok_or_else(not_a_file)?;
+        // The confirmation page comes first: its file name may contain "quota".
+        let Some(confirm_url) = confirm_form_url_at(&html, &self.download_base) else {
+            return Err(if is_quota_page(&html) {
+                DownloadError::RateLimited(format!("too many downloads of {id} recently"))
+            } else {
+                not_a_file()
+            });
+        };
         match fetch(client, &confirm_url).await? {
             Fetched::File { url, name, size } => Ok((url, name, size)),
             Fetched::Page(html) if is_quota_page(&html) => {
@@ -297,8 +301,11 @@ impl Site for GoogleDrive {
         progress: FileProgress<'_>,
     ) -> Result<PathBuf, DownloadError> {
         let (url, header_name, size) = self.resolve_file(&ctx.http, &item.id).await?;
+        let header_name_missing = header_name.is_none();
         let name = header_name.or_else(|| item.name.clone()).unwrap_or_else(|| item.id.clone());
-        save_named(&ctx.http, &url, &name, size, out_dir, progress).await
+        // Without a file name in the headers the answer could be a page again (a used-up
+        // confirmation link, the quota page); never save that as the file.
+        save_named(&ctx.http, &url, &name, size, out_dir, progress, header_name_missing).await
     }
 
     fn delay(&self) -> Duration {
@@ -408,6 +415,44 @@ mod tests {
         let path = download_one(&base, "1AbC", dir.path()).await.unwrap();
         assert_eq!(path, dir.path().join("big.zip"));
         assert_eq!(std::fs::read(path).unwrap(), payload());
+    }
+
+    #[tokio::test]
+    async fn confirm_page_for_file_named_quota_is_not_rate_limited() {
+        let confirm = CONFIRM.replace("big-pack.zip", "quota-report.zip");
+        let form = confirm.replace("https://drive.usercontent.google.com/download", "/confirmed");
+        let base = serve(vec![html_route("/download", &form), file_route("/confirmed", payload(), "quota-report.zip")]).await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = download_one(&base, "1AbC", dir.path()).await.unwrap();
+        assert_eq!(path, dir.path().join("quota-report.zip"));
+    }
+
+    #[tokio::test]
+    async fn html_on_the_final_get_is_never_saved_as_the_file() {
+        // The first answer is a nameless "file"; the second GET (the one that is saved) gets a
+        // page, e.g. a used-up confirmation link.
+        let mut route = Route::ok("/download", payload());
+        route.then = Some(Box::new(html_route("/download", "<html>please confirm</html>")));
+        let base = serve(vec![route]).await;
+        let dir = tempfile::tempdir().unwrap();
+        let item = FileItem { id: "1AbC".into(), subdir: String::new(), name: Some("a.zip".into()) };
+        let mut site = GoogleDrive::with_bases(base.clone(), base);
+        let noop = |_: &str, _: u64, _: Option<u64>| {};
+        let err = site.download(&ctx(), &item, "", dir.path(), &noop).await.unwrap_err();
+        assert!(matches!(err, DownloadError::NotAFile(_)), "{err:?}");
+        assert!(!dir.path().join("a.zip").exists());
+        assert!(!dir.path().join("a.zip.part").exists());
+    }
+
+    #[tokio::test]
+    async fn named_html_file_is_still_downloaded() {
+        let mut route = Route::ok("/download", b"<html>my page</html>".to_vec());
+        route.headers.push(("Content-Type".into(), "text/html".into()));
+        route.headers.push(("Content-Disposition".into(), "attachment; filename=\"page.html\"".into()));
+        let base = serve(vec![route]).await;
+        let dir = tempfile::tempdir().unwrap();
+        let path = download_one(&base, "1AbC", dir.path()).await.unwrap();
+        assert_eq!(std::fs::read(path).unwrap(), b"<html>my page</html>");
     }
 
     #[tokio::test]

@@ -58,7 +58,7 @@ pub(crate) async fn download_sharepoint(
     let name = head
         .name
         .ok_or_else(|| DownloadError::LoginRequired(format!("{url} needs a login or is not shared publicly")))?;
-    save_named(client, &head.final_url, &name, head.size, out_dir, progress).await
+    save_named(client, &head.final_url, &name, head.size, out_dir, progress, false).await
 }
 
 #[async_trait::async_trait]

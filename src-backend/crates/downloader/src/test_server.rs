@@ -1,5 +1,6 @@
 //! Minimal HTTP/1.1 server for tests (one request per connection, closes after responding).
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -14,11 +15,13 @@ pub(crate) struct Route {
     pub body: Vec<u8>,
     /// Parse `Range: bytes=N-` and answer 206 (or 416 when N is past the end).
     pub honor_range: bool,
+    /// Answer every request after the first one to this path with this route instead.
+    pub then: Option<Box<Route>>,
 }
 
 impl Route {
     pub fn ok(path: &str, body: Vec<u8>) -> Self {
-        Route { path: path.into(), status: 200, headers: vec![], body, honor_range: false }
+        Route { path: path.into(), status: 200, headers: vec![], body, honor_range: false, then: None }
     }
 }
 
@@ -34,6 +37,7 @@ pub(crate) async fn serve(routes: Vec<Route>) -> String {
 pub(crate) async fn serve_logged(routes: Vec<Route>) -> (String, Arc<Mutex<Vec<Option<String>>>>) {
     let log = Arc::new(Mutex::new(Vec::new()));
     let task_log = log.clone();
+    let counts: Arc<Mutex<HashMap<String, usize>>> = Arc::default();
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
@@ -41,15 +45,21 @@ pub(crate) async fn serve_logged(routes: Vec<Route>) -> (String, Arc<Mutex<Vec<O
             let Ok((stream, _)) = listener.accept().await else { break };
             let routes = routes.clone();
             let log = task_log.clone();
+            let counts = counts.clone();
             tokio::spawn(async move {
-                let _ = handle(stream, &routes, &log).await;
+                let _ = handle(stream, &routes, &log, &counts).await;
             });
         }
     });
     (format!("http://{addr}"), log)
 }
 
-async fn handle(mut stream: TcpStream, routes: &[Route], log: &Mutex<Vec<Option<String>>>) -> std::io::Result<()> {
+async fn handle(
+    mut stream: TcpStream,
+    routes: &[Route],
+    log: &Mutex<Vec<Option<String>>>,
+    counts: &Mutex<HashMap<String, usize>>,
+) -> std::io::Result<()> {
     let mut buf = Vec::new();
     let mut tmp = [0u8; 4096];
     while !buf.windows(4).any(|w| w == b"\r\n\r\n") {
@@ -74,6 +84,17 @@ async fn handle(mut stream: TcpStream, routes: &[Route], log: &Mutex<Vec<Option<
 
     let Some(route) = routes.iter().find(|r| r.path == path) else {
         return write_response(&mut stream, 404, "Not Found", &[], b"not found", true).await;
+    };
+
+    let seen = {
+        let mut counts = counts.lock().unwrap();
+        let n = counts.entry(route.path.clone()).or_insert(0);
+        *n += 1;
+        *n - 1
+    };
+    let route = match (&route.then, seen) {
+        (Some(later), 1..) => later.as_ref(),
+        _ => route,
     };
 
     let chunked = route

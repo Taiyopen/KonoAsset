@@ -33,7 +33,7 @@ impl Site for Direct {
             }
             None => name_from_url(&head.final_url).unwrap_or_else(|| "download".to_string()),
         };
-        save_named(&ctx.http, &head.final_url, &name, head.size, out_dir, progress).await
+        save_named(&ctx.http, &head.final_url, &name, head.size, out_dir, progress, false).await
     }
 }
 

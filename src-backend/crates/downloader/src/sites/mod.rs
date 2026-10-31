@@ -95,7 +95,7 @@ pub(crate) fn name_from_url(url: &str) -> Option<String> {
 }
 
 /// Downloads `url` to `out_dir/<safe name>`; returns right away when a file of the same size is
-/// already there.
+/// already there. With `reject_html`, an HTML answer fails with `NotAFile` instead of being saved.
 pub(crate) async fn save_named(
     client: &reqwest::Client,
     url: &str,
@@ -103,6 +103,7 @@ pub(crate) async fn save_named(
     size: Option<u64>,
     out_dir: &Path,
     progress: FileProgress<'_>,
+    reject_html: bool,
 ) -> Result<PathBuf, DownloadError> {
     let file_name = safe_name(name);
     let target = out_dir.join(&file_name);
@@ -111,7 +112,7 @@ pub(crate) async fn save_named(
             return Ok(target);
         }
     }
-    let opts = SaveOptions { size, sha256: None, headers: HeaderMap::new(), reject_html: false };
+    let opts = SaveOptions { size, sha256: None, headers: HeaderMap::new(), reject_html };
     save_stream(client, url, &target, opts, &|done, total| progress(&file_name, done, total)).await?;
     Ok(target)
 }
