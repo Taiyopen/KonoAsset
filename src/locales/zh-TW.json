@@ -332,6 +332,11 @@
     "preference:settings:use-trash-bin-selector": "使用資源回收筒",
     "preference:settings:use-trash-bin-selector:explanation-text": "啟用後，刪除的檔案會移至資源回收筒",
 
+    "preference:settings:ai-suggest": "AI 輔助",
+    "preference:settings:ai-suggest:explanation-text": "新增素材時，以 Claude 自動填入分類、對應虛擬角色與標籤。會將 BOOTH 商品資訊與你現有的分類、虛擬角色、標籤清單傳送給 Anthropic，費用由此金鑰所屬的帳號支付",
+    "preference:settings:ai-suggest:api-key": "Claude API 金鑰",
+    "preference:settings:ai-suggest:api-key:placeholder": "sk-ant-...",
+
     "preference:thumbnail-optimizer:optimize": "最佳化縮圖",
     "preference:thumbnail-optimizer:optimize:description": "調整過大縮圖的尺寸並刪除不需要的檔案，以節省磁碟空間",
     "preference:thumbnail-optimizer:button:optimize": "最佳化",

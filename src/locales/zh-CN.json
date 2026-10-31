@@ -332,6 +332,11 @@
     "preference:settings:use-trash-bin-selector": "使用回收站",
     "preference:settings:use-trash-bin-selector:explanation-text": "启用后，删除的文件将被移至回收站",
 
+    "preference:settings:ai-suggest": "AI 辅助",
+    "preference:settings:ai-suggest:explanation-text": "添加素材时，使用 Claude 自动填写分类、对应虚拟形象和标签。会将 BOOTH 商品信息以及你现有的分类、虚拟形象、标签列表发送给 Anthropic，费用由此密钥所属的账号支付",
+    "preference:settings:ai-suggest:api-key": "Claude API 密钥",
+    "preference:settings:ai-suggest:api-key:placeholder": "sk-ant-...",
+
     "preference:thumbnail-optimizer:optimize": "优化缩略图",
     "preference:thumbnail-optimizer:optimize:description": "调整过大缩略图的尺寸并删除不必要的文件，以节省磁盘空间",
     "preference:thumbnail-optimizer:button:optimize": "优化",

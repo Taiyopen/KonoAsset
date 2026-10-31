@@ -332,6 +332,11 @@
     "preference:settings:use-trash-bin-selector": "Use Recycle Bin",
     "preference:settings:use-trash-bin-selector:explanation-text": "If this setting is enabled, files will be moved to the Recycle Bin when deleted",
 
+    "preference:settings:ai-suggest": "AI assistance",
+    "preference:settings:ai-suggest:explanation-text": "Automatically fill in category, supported avatars and tags with Claude when adding assets. BOOTH item details and your existing category, avatar and tag lists are sent to Anthropic, and usage is billed to the account that owns this key",
+    "preference:settings:ai-suggest:api-key": "Claude API key",
+    "preference:settings:ai-suggest:api-key:placeholder": "sk-ant-...",
+
     "preference:thumbnail-optimizer:optimize": "Optimize thumbnail images",
     "preference:thumbnail-optimizer:optimize:description": "Resize excessively large thumbnail images and delete unnecessary files to save disk space",
     "preference:thumbnail-optimizer:button:optimize": "Optimize",

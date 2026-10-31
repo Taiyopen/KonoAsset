@@ -17,6 +17,7 @@ import { LocalizationContext } from '@/components/context/LocalizationContext'
 import { ZipExtractionToggle } from '@/components/model-legacy/preference/ZipExtractionToggle'
 import { ThumbnailOptimizer } from '@/components/models/thumbnail-optimizer/ThumbnailOptimizer'
 import { UseTrashBinSelectorToggle } from '@/components/model-legacy/preference/UseTrashBinSelectorToggle'
+import { AiSuggestSettings } from '@/components/model-legacy/preference/AiSuggestSettings'
 
 type Props = {
   id: PreferenceTabIDs
@@ -95,6 +96,22 @@ export const SettingsTab: FC<Props> = ({ id }) => {
           enable={preference.useTrashBin}
           setEnable={async (enable: boolean) => {
             await setPreference({ ...preference, useTrashBin: enable }, true)
+          }}
+        />
+        <AiSuggestSettings
+          enabled={preference.aiSuggestEnabled}
+          apiKey={preference.aiSuggestApiKey}
+          setEnabled={async (enabled: boolean) => {
+            await setPreference(
+              { ...preference, aiSuggestEnabled: enabled },
+              true,
+            )
+          }}
+          setApiKey={async (apiKey: string) => {
+            await setPreference(
+              { ...preference, aiSuggestApiKey: apiKey },
+              true,
+            )
           }}
         />
         <Separator />

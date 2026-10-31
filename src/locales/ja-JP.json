@@ -345,6 +345,11 @@
     "preference:settings:use-trash-bin-selector": "ゴミ箱を使用する",
     "preference:settings:use-trash-bin-selector:explanation-text": "この設定が有効の場合、ファイルを削除するときにゴミ箱に移動されるようになります",
 
+    "preference:settings:ai-suggest": "AIアシスト",
+    "preference:settings:ai-suggest:explanation-text": "アセット追加時に、Claudeでカテゴリ・対応アバター・タグを自動入力します。BOOTHの商品情報と既存のカテゴリ・アバター・タグの一覧がAnthropicに送信され、料金はこのキーのアカウントに請求されます",
+    "preference:settings:ai-suggest:api-key": "Claude APIキー",
+    "preference:settings:ai-suggest:api-key:placeholder": "sk-ant-...",
+
     "top:new-update-toast": "新しいアップデートがあります！",
     "top:new-update-toast:description": "アップデートにはバグ修正、機能追加などが含まれます",
     "top:new-update-toast:button": "アップデートする",
