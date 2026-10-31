@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { SelectDirectoryCard } from './selector/SelectDirectoryCard'
 import { SelectFileCard } from './selector/SelectFileCard'
+import { SelectLinkCard } from './selector/SelectLinkCard'
 import { open } from '@tauri-apps/plugin-dialog'
 import { downloadDir } from '@tauri-apps/api/path'
 import { useContext } from 'react'
@@ -31,7 +32,7 @@ export const AssetPathSelectorTab = ({
   totalTabs,
 }: Props) => {
   const { t } = useLocalization()
-  const { setAssetPaths } = useContext(AddAssetDialogContext)
+  const { setAssetPaths, setDownloadLinks } = useContext(AddAssetDialogContext)
   const { preference } = useContext(PreferenceContext)
 
   const openFileOrDirSelector = async (dir: boolean) => {
@@ -54,6 +55,7 @@ export const AssetPathSelectorTab = ({
 
     if (path !== null) {
       setAssetPaths(path)
+      setDownloadLinks(undefined)
       setTab('booth-input')
     }
   }
@@ -73,7 +75,7 @@ export const AssetPathSelectorTab = ({
           {t('addasset:select-path:explanation-text')}
         </DialogDescription>
       </DialogHeader>
-      <div className="mx-auto flex justify-between w-[550px] my-4">
+      <div className="mx-auto flex justify-between w-[650px] my-4">
         <SelectFileCard
           onClick={() => {
             openFileOrDirSelector(false)
@@ -84,6 +86,7 @@ export const AssetPathSelectorTab = ({
             openFileOrDirSelector(true)
           }}
         />
+        <SelectLinkCard onClick={() => setTab('link-input')} />
       </div>
       <div className="my-6 space-y-4">
         <div className="flex flex-row justify-center text-center">

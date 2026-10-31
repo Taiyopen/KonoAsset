@@ -3,6 +3,7 @@ import {
   AssetImportRequest,
   AssetType,
   commands,
+  DownloadPreAsset,
   PreAvatar,
   PreAvatarWearable,
   PreOtherAsset,
@@ -100,4 +101,41 @@ export const sendAssetImportRequest = async (
   } else {
     return { status: 'error', error: `Unsupported asset type: ${assetType}` }
   }
+}
+
+export const buildDownloadPreAsset = (
+  assetType: AssetType,
+  preAsset: PreAvatar | PreAvatarWearable | PreWorldObject | PreOtherAsset,
+): Result<DownloadPreAsset, string> => {
+  if (assetType === 'Avatar') {
+    return { status: 'ok', data: { Avatar: preAsset as PreAvatar } }
+  } else if (assetType === 'AvatarWearable') {
+    return {
+      status: 'ok',
+      data: { AvatarWearable: preAsset as PreAvatarWearable },
+    }
+  } else if (assetType === 'WorldObject') {
+    return { status: 'ok', data: { WorldObject: preAsset as PreWorldObject } }
+  } else if (assetType === 'OtherAsset') {
+    return { status: 'ok', data: { OtherAsset: preAsset as PreOtherAsset } }
+  } else {
+    return { status: 'error', error: `Unsupported asset type: ${assetType}` }
+  }
+}
+
+export const sendDownloadImportRequest = async (
+  assetType: AssetType,
+  linksText: string,
+  preAsset: PreAvatar | PreAvatarWearable | PreWorldObject | PreOtherAsset,
+): Promise<Result<string, string>> => {
+  const downloadPreAsset = buildDownloadPreAsset(assetType, preAsset)
+
+  if (downloadPreAsset.status === 'error') {
+    return downloadPreAsset
+  }
+
+  return await commands.requestDownloadImport({
+    linksText,
+    preAsset: downloadPreAsset.data,
+  })
 }

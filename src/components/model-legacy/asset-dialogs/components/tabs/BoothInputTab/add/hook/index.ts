@@ -1,11 +1,13 @@
 import { convertToBoothURL, extractBoothItemId } from '@/lib/utils'
-import { useState, useContext, ChangeEvent } from 'react'
+import { useState, useContext, useEffect, ChangeEvent } from 'react'
 import { AddAssetDialogContext } from '../../../../../AddAssetDialog'
 import { sep } from '@tauri-apps/api/path'
 import { AssetFormType } from '@/lib/form'
 import { useToast } from '@/hooks/use-toast'
 import { getAndSetAssetInfoFromBoothToForm } from '../../logic'
 import { useLocalization } from '@/hooks/use-localization'
+import { commands, ParsedLine } from '@/lib/bindings'
+import { representativeLinkLabel } from '../../../LinkInputTab/logic'
 
 type Props = {
   form: AssetFormType
@@ -40,12 +42,37 @@ export const useBoothInputTabForAddDialog = ({
   const { t } = useLocalization()
   const { toast } = useToast()
 
-  const { assetPaths, setDuplicateWarningItems } = useContext(
+  const { assetPaths, downloadLinks, setDuplicateWarningItems } = useContext(
     AddAssetDialogContext,
   )
 
+  const [parsedLinks, setParsedLinks] = useState<ParsedLine[]>([])
+
+  useEffect(() => {
+    if (downloadLinks === undefined) {
+      return
+    }
+
+    let isCancelled = false
+
+    commands
+      .parseDownloadLinks(downloadLinks)
+      .then((lines) => {
+        if (!isCancelled) {
+          setParsedLinks(lines)
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to parse download links:', error)
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [downloadLinks])
+
   const backToPreviousTab = () => {
-    setTab('selector')
+    setTab(downloadLinks !== undefined ? 'link-input' : 'selector')
   }
 
   const moveToNextTab = () => {
@@ -103,12 +130,24 @@ export const useBoothInputTabForAddDialog = ({
     }
   }
 
-  const representativeImportFilename =
-    assetPaths !== undefined && assetPaths.length > 0
-      ? (assetPaths[0].split(sep()).pop() as string)
-      : t('addasset:booth-input:no-file-selected')
+  const linkLabel =
+    downloadLinks !== undefined
+      ? representativeLinkLabel(parsedLinks, t)
+      : undefined
 
-  const importFileCount = assetPaths !== undefined ? assetPaths.length : 0
+  const representativeImportFilename =
+    linkLabel !== undefined
+      ? linkLabel.label
+      : assetPaths !== undefined && assetPaths.length > 0
+        ? (assetPaths[0].split(sep()).pop() as string)
+        : t('addasset:booth-input:no-file-selected')
+
+  const importFileCount =
+    linkLabel !== undefined
+      ? linkLabel.count
+      : assetPaths !== undefined
+        ? assetPaths.length
+        : 0
 
   return {
     representativeImportFilename,

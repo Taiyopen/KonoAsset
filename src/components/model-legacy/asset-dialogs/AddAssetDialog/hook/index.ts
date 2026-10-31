@@ -15,7 +15,11 @@ import {
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { AddAssetDialogContextType } from '..'
-import { createPreAsset, sendAssetImportRequest } from '../logic'
+import {
+  createPreAsset,
+  sendAssetImportRequest,
+  sendDownloadImportRequest,
+} from '../logic'
 import { PreferenceContext } from '@/components/context/PreferenceContext'
 import { useLocalization } from '@/hooks/use-localization'
 import { useAssetSummaryViewStore } from '@/stores/AssetSummaryViewStore'
@@ -44,6 +48,7 @@ type ReturnProps = {
   onTaskCancelled: () => void
   onTaskFailed: (error: string | null) => void
   validatePaths: () => Promise<boolean>
+  isLinkMode: boolean
   submit: (ignoreNonExistingPaths: boolean) => Promise<void>
   submitting: boolean
   aiSuggest: AiSuggestViewState
@@ -55,6 +60,9 @@ export const useAddAssetDialog = ({
 }: Props): ReturnProps => {
   const [tab, setTab] = useState('selector')
   const [assetPaths, setAssetPaths] = useState<string[]>([])
+  const [downloadLinks, setDownloadLinks] = useState<string | undefined>(
+    undefined,
+  )
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [duplicateWarningItems, setDuplicateWarningItems] = useState<
     AssetSummary[]
@@ -142,9 +150,17 @@ export const useAddAssetDialog = ({
     })
 
     setAssetPaths([])
+    setDownloadLinks(undefined)
     setImageUrls([])
     resetAiSuggest()
-  }, [form, defaultValues, setAssetPaths, setImageUrls, resetAiSuggest])
+  }, [
+    form,
+    defaultValues,
+    setAssetPaths,
+    setDownloadLinks,
+    setImageUrls,
+    resetAiSuggest,
+  ])
 
   const openDialogWithoutClearForm = useCallback(() => {
     if (dialogOpen) {
@@ -237,6 +253,8 @@ export const useAddAssetDialog = ({
   const contextValue = {
     assetPaths,
     setAssetPaths,
+    downloadLinks,
+    setDownloadLinks,
     duplicateWarningItems,
     setDuplicateWarningItems,
   }
@@ -339,6 +357,34 @@ export const useAddAssetDialog = ({
         return
       }
 
+      if (downloadLinks !== undefined) {
+        const downloadResult = await sendDownloadImportRequest(
+          form.getValues('assetType'),
+          downloadLinks,
+          preAssetResult.data,
+        )
+
+        if (downloadResult.status === 'ok') {
+          toast({
+            title: t('addasset:link-input:queued-toast'),
+            description: t('addasset:link-input:queued-toast:description'),
+            duration: 3000,
+          })
+
+          setTab('empty')
+          setDialogOpen(false)
+          return
+        }
+
+        console.error(downloadResult.error)
+
+        toast({
+          title: t('addasset:import-start-error-toast'),
+          description: downloadResult.error,
+        })
+        return
+      }
+
       const paths = assetPaths.filter((path) => {
         if (!ignoreNonExistingPaths) {
           return true
@@ -426,6 +472,7 @@ export const useAddAssetDialog = ({
     onTaskCancelled,
     onTaskFailed,
     validatePaths,
+    isLinkMode: downloadLinks !== undefined,
     submit,
     submitting,
     aiSuggest,

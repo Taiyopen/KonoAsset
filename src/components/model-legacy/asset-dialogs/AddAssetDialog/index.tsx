@@ -12,10 +12,14 @@ import { DialogWrapper } from '../components/DialogWrapper'
 import { AdditionalInputTab } from '../components/tabs/AdditionalInputTab'
 import { useLocalization } from '@/hooks/use-localization'
 import { PathConfirmationTab } from '../components/tabs/PathConfirmationTab'
+import { LinkInputTab } from '../components/tabs/LinkInputTab'
 
 export type AddAssetDialogContextType = {
   assetPaths?: string[]
   setAssetPaths: (paths: string[]) => void
+
+  downloadLinks?: string
+  setDownloadLinks: (links: string | undefined) => void
 
   duplicateWarningItems: AssetSummary[]
   setDuplicateWarningItems: (items: AssetSummary[]) => void
@@ -23,6 +27,7 @@ export type AddAssetDialogContextType = {
 
 export const AddAssetDialogContext = createContext<AddAssetDialogContextType>({
   setAssetPaths: () => {},
+  setDownloadLinks: () => {},
 
   duplicateWarningItems: [],
   setDuplicateWarningItems: () => {},
@@ -50,6 +55,7 @@ export const AddAssetDialog = ({ dialogOpen, setDialogOpen }: Props) => {
     onTaskCancelled,
     onTaskFailed,
     validatePaths,
+    isLinkMode,
     submit,
     submitting,
     aiSuggest,
@@ -66,6 +72,9 @@ export const AddAssetDialog = ({ dialogOpen, setDialogOpen }: Props) => {
       <AddAssetDialogContext.Provider value={contextValue}>
         <TabsContent value="selector">
           <AssetPathSelectorTab setTab={setTab} tabIndex={1} totalTabs={5} />
+        </TabsContent>
+        <TabsContent value="link-input">
+          <LinkInputTab setTab={setTab} tabIndex={1} totalTabs={5} />
         </TabsContent>
         <TabsContent value="booth-input">
           <BoothInputTabForAddDialog
@@ -108,10 +117,16 @@ export const AddAssetDialog = ({ dialogOpen, setDialogOpen }: Props) => {
             form={form}
             onBackToPreviousTabClicked={() => setTab('manual-input')}
             onSubmit={async () => {
+              if (isLinkMode) {
+                await submit(false)
+                return
+              }
+
               const isAbleToSubmit = await validatePaths()
               if (isAbleToSubmit) await submit(false)
             }}
             submitting={submitting}
+            hideDeleteSourceCheckbox={isLinkMode}
             tabIndex={5}
             totalTabs={5}
             submitButtonText={t('addasset:add-asset')}

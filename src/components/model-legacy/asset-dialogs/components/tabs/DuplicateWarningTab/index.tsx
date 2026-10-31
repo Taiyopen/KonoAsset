@@ -27,7 +27,7 @@ export const DuplicateWarningTab = ({
   closeDialog,
 }: Props) => {
   const { t } = useLocalization()
-  const { assetPaths, duplicateWarningItems } = useContext(
+  const { assetPaths, downloadLinks, duplicateWarningItems } = useContext(
     AddAssetDialogContext,
   )
 
@@ -73,10 +73,12 @@ export const DuplicateWarningTab = ({
         {duplicateWarningItems.map((item) => (
           <div key={item.id} className="mb-4">
             <SlimAssetDetail asset={item} className="max-w-[600px]">
-              <Button onClick={() => importEntriesAs(item.id)}>
-                <Download />
-                {t('addasset:duplicate-warning:import-here')}
-              </Button>
+              {downloadLinks === undefined && (
+                <Button onClick={() => importEntriesAs(item.id)}>
+                  <Download />
+                  {t('addasset:duplicate-warning:import-here')}
+                </Button>
+              )}
             </SlimAssetDetail>
           </div>
         ))}
