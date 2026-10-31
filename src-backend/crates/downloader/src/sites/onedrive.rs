@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use tauri::Url;
 
-use crate::browser::{require_app, save_download, HiddenBrowser};
+use crate::browser::{require_app, save_download, HiddenBrowser, NativeFallback};
 use crate::error::DownloadError;
 use crate::link::Job;
 use crate::site::{Ctx, FileItem, FileProgress, Site};
@@ -24,13 +24,10 @@ const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(180);
 /// Once the page has loaded, looks for a visible Download button every second (the selectors
 /// differ between OneDrive versions), reports `clicked` and clicks it. The report goes first: it
 /// is a navigation and would cancel a download the click starts by navigating. Reports
-/// `no-button` after 45 s, and right away on a Microsoft login page.
+/// `no-button` after 45 s. Login pages get no script: public links may pass through a silent
+/// login page, so a login is only assumed when the page is still there at the end.
 const INIT_JS: &str = r#"(() => {
   const host = location.hostname;
-  if (host === 'login.live.com' || host === 'login.microsoftonline.com') {
-    addEventListener('DOMContentLoaded', () => window.__konoReport('no-button', { title: document.title, login: true }));
-    return;
-  }
   if (!host.includes('onedrive') && !host.includes('1drv')) return;
   const selectors = [
     "button[data-automationid='download']",
@@ -98,7 +95,8 @@ impl OneDrive {
         }
         log::info!("onedrive: Download button clicked ({})", report.str("selector"));
         let request = browser.wait_download(DOWNLOAD_TIMEOUT).await?;
-        save_download(browser, &ctx.http, request, None, &share, out_dir, progress).await
+        let native = NativeFallback { trigger: &share, start_timeout: DOWNLOAD_TIMEOUT, fail_reports: &["no-button"] };
+        save_download(browser, &ctx.http, request, None, &native, out_dir, progress).await
     }
 }
 

@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use tauri::Url;
 
-use crate::browser::{require_app, save_download, HiddenBrowser, Report};
+use crate::browser::{is_report_timeout, require_app, save_download, HiddenBrowser, NativeFallback, Report};
 use crate::error::DownloadError;
 use crate::http::safe_name;
 use crate::link::{Job, JobKind};
@@ -76,6 +76,12 @@ fn page_url(path: &str, id: &str) -> Result<Url, DownloadError> {
     Url::parse(&format!("{BASE}/{path}/{id}")).map_err(|e| DownloadError::Fatal(format!("bad workupload id {id}: {e}")))
 }
 
+/// [`PASSWORD_JS`] with `password` as a JS string literal.
+fn password_js(password: &str) -> Result<String, DownloadError> {
+    let literal = serde_json::to_string(password).map_err(|e| DownloadError::Fatal(e.to_string()))?;
+    Ok(PASSWORD_JS.replace("__PASSWORD__", &literal))
+}
+
 /// Waits for the page to be ready and enters the password when it asks for one.
 async fn unlock(browser: &mut HiddenBrowser, password: &str) -> Result<Report, DownloadError> {
     let report = browser.wait_report(READY_TIMEOUT, &["ready"]).await?;
@@ -85,8 +91,7 @@ async fn unlock(browser: &mut HiddenBrowser, password: &str) -> Result<Report, D
     if password.is_empty() {
         return Err(DownloadError::PasswordRequired);
     }
-    let literal = serde_json::to_string(password).map_err(|e| DownloadError::Fatal(e.to_string()))?;
-    browser.eval(&PASSWORD_JS.replace("__PASSWORD__", &literal))?;
+    browser.eval(&password_js(password)?)?;
     log::info!("workupload: password submitted");
     let report = browser.wait_report(READY_TIMEOUT, &["ready"]).await?;
     if report.bool("hasPassword") {
@@ -145,7 +150,8 @@ impl Site for Workupload {
         let start = page_url("start", &item.id)?;
         browser.navigate(&start)?;
         let request = browser.wait_download(START_TIMEOUT).await?;
-        save_download(browser, &ctx.http, request, Some("https://workupload.com/"), &start, out_dir, progress).await
+        let native = NativeFallback { trigger: &start, start_timeout: START_TIMEOUT, fail_reports: &[] };
+        save_download(browser, &ctx.http, request, Some("https://workupload.com/"), &native, out_dir, progress).await
     }
 
     /// Too many requests in a row get the IP blocked for a while.
@@ -153,10 +159,12 @@ impl Site for Workupload {
         Duration::from_secs(10)
     }
 
-    /// Connection errors usually mean the site blocked us for a while: wait longer.
+    /// Connection errors usually mean the site blocked us for a while: wait longer. WebView2
+    /// shows its own error page instead of telling us about them, so a page that never gets
+    /// `ready` counts as one too.
     fn retry_wait(&self, attempt: u32, err: &DownloadError) -> Duration {
         let message = err.to_string();
-        if message.contains("ERR_CONNECTION") || message.contains("ERR_TIMED_OUT") {
+        if message.contains("ERR_CONNECTION") || message.contains("ERR_TIMED_OUT") || is_report_timeout(err) {
             return Duration::from_secs(CONNECTION_WAITS[(attempt.clamp(1, 3) - 1) as usize]);
         }
         Duration::from_secs(20 * attempt as u64)
@@ -177,6 +185,32 @@ mod tests {
         assert_eq!(site.retry_wait(2, &DownloadError::Retryable("ERR_TIMED_OUT".into())), Duration::from_secs(180));
         assert_eq!(site.retry_wait(5, &blocked), Duration::from_secs(300));
         assert_eq!(site.retry_wait(2, &DownloadError::Retryable("HTTP 502".into())), Duration::from_secs(40));
+    }
+
+    #[test]
+    fn page_that_never_gets_ready_waits_like_a_connection_error() {
+        let site = Workupload::new();
+        let timeout = DownloadError::Retryable(format!(
+            "{}: no [\"ready\"] within 90s (at workupload.com/file/abc)",
+            crate::browser::REPORT_TIMEOUT
+        ));
+        assert_eq!(site.retry_wait(1, &timeout), Duration::from_secs(60));
+        assert_eq!(site.retry_wait(2, &timeout), Duration::from_secs(180));
+        assert_eq!(site.retry_wait(3, &timeout), Duration::from_secs(300));
+        let closed = DownloadError::Retryable("browser window closed".into());
+        assert_eq!(site.retry_wait(1, &closed), Duration::from_secs(20));
+    }
+
+    #[test]
+    fn password_is_injected_as_an_escaped_literal() {
+        let password = "a\"b\\c\nd</script>";
+        let js = password_js(password).unwrap();
+        assert!(js.contains(r#"input.value = "a\"b\\c\nd</script>";"#), "{js}");
+        // The literal reads back as the same password.
+        let start = js.find("input.value = ").unwrap() + "input.value = ".len();
+        let end = start + js[start..].find(";\n").unwrap();
+        assert_eq!(serde_json::from_str::<String>(&js[start..end]).unwrap(), password);
+        assert!(!js.contains("__PASSWORD__"));
     }
 
     #[tokio::test]

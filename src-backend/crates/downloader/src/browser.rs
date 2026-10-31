@@ -26,6 +26,8 @@ pub const REPORT_HOST: &str = "konoasset.invalid";
 /// A download WebView2 performs itself may take as long as the file needs.
 pub const NATIVE_TIMEOUT: Duration = Duration::from_secs(6 * 60 * 60);
 const BROWSER_UNAVAILABLE: &str = "browser unavailable";
+/// Start of the error [`HiddenBrowser::wait_report`] gives when no report came in time.
+pub(crate) const REPORT_TIMEOUT: &str = "browser page timed out";
 
 /// Defines `window.__konoReport(kind, data)`; prepended to every init script.
 const REPORT_JS: &str = r#"window.__konoReport = (kind, data) => { location.href = 'https://konoasset.invalid/report?d=' + encodeURIComponent(JSON.stringify({ kind, ...data })) };"#;
@@ -92,6 +94,11 @@ fn lock(state: &Mutex<NativeState>) -> MutexGuard<'_, NativeState> {
 /// `host/path` of a url, for logs (no query: it may hold tokens).
 fn short(url: &Url) -> String {
     format!("{}{}", url.host_str().unwrap_or(""), url.path())
+}
+
+/// Whether `err` is the timeout of [`HiddenBrowser::wait_report`].
+pub(crate) fn is_report_timeout(err: &DownloadError) -> bool {
+    matches!(err, DownloadError::Retryable(message) if message.starts_with(REPORT_TIMEOUT))
 }
 
 /// The app handle, or `Fatal("browser unavailable")` (tests, or no Tauri runtime).
@@ -253,7 +260,7 @@ impl HiddenBrowser {
                 Err(_) => {
                     let at = self.current_url().map(|u| short(&u)).unwrap_or_default();
                     return Err(DownloadError::Retryable(format!(
-                        "browser page sent no {kinds:?} report within {}s (at {at})",
+                        "{REPORT_TIMEOUT}: no {kinds:?} within {}s (at {at})",
                         timeout.as_secs()
                     )));
                 }
@@ -282,14 +289,16 @@ impl HiddenBrowser {
         Ok(cookies.iter().map(|c| format!("{}={}", c.name(), c.value())).collect::<Vec<_>>().join("; "))
     }
 
-    /// Lets WebView2 itself save the next download to `dest`, triggered by loading `trigger`,
-    /// and waits until it finished.
-    pub async fn native_download(&mut self, trigger: &Url, dest: &Path, timeout_after: Duration) -> Result<(), DownloadError> {
+    /// Lets WebView2 itself save the next download to `dest`, triggered by loading
+    /// `native.trigger`, and waits until it finished. The download must start within
+    /// `native.start_timeout` (a report whose kind is in `native.fail_reports` gives up at once);
+    /// once started it may take up to [`NATIVE_TIMEOUT`].
+    pub async fn native_download(&mut self, native: &NativeFallback<'_>, dest: &Path) -> Result<(), DownloadError> {
         if let Some(parent) = dest.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
         *lock(&self.native) = NativeState { destination: Some(dest.to_path_buf()), started: None };
-        let result = self.native_wait(trigger, timeout_after).await;
+        let result = self.native_wait(native).await;
         *lock(&self.native) = NativeState::default();
 
         let path = result?;
@@ -300,20 +309,37 @@ impl HiddenBrowser {
         Ok(())
     }
 
-    async fn native_wait(&mut self, trigger: &Url, timeout_after: Duration) -> Result<PathBuf, DownloadError> {
-        self.navigate(trigger)?;
-        let deadline = Instant::now() + timeout_after;
+    async fn native_wait(&mut self, native: &NativeFallback<'_>) -> Result<PathBuf, DownloadError> {
+        self.navigate(native.trigger)?;
+        let label = self.window.label().to_string();
+        let mut deadline = Instant::now() + native.start_timeout;
+        let mut started = false;
         loop {
-            match timeout_at(deadline, self.native_events.recv()).await {
-                Ok(Some(NativeEvent::Started(url))) => {
-                    log::info!("[{}] native download started from {}", self.window.label(), short(&url));
+            tokio::select! {
+                event = self.native_events.recv() => match event {
+                    Some(NativeEvent::Started(url)) => {
+                        log::info!("[{label}] native download started from {}", short(&url));
+                        started = true;
+                        deadline = Instant::now() + NATIVE_TIMEOUT;
+                    }
+                    Some(NativeEvent::Finished { path: Some(path), success: true }) => return Ok(path),
+                    Some(NativeEvent::Finished { .. }) => {
+                        return Err(DownloadError::Retryable("browser download failed".into()));
+                    }
+                    None => return Err(DownloadError::Retryable("browser window closed".into())),
+                },
+                Some(report) = self.reports.recv(), if !started => {
+                    if native.fail_reports.contains(&report.kind.as_str()) {
+                        log::info!("[{label}] report {} while waiting for the native download", report.kind);
+                        return Err(DownloadError::Retryable(format!("download did not start ({})", report.kind)));
+                    }
+                    log::debug!("[{label}] report {} while waiting for the native download", report.kind);
                 }
-                Ok(Some(NativeEvent::Finished { path: Some(path), success: true })) => return Ok(path),
-                Ok(Some(NativeEvent::Finished { .. })) => {
-                    return Err(DownloadError::Retryable("browser download failed".into()));
+                _ = tokio::time::sleep_until(deadline) => {
+                    return Err(DownloadError::Retryable(
+                        if started { "browser download timed out" } else { "download did not start" }.into(),
+                    ));
                 }
-                Ok(None) => return Err(DownloadError::Retryable("browser window closed".into())),
-                Err(_) => return Err(DownloadError::Retryable("browser download timed out".into())),
             }
         }
     }
@@ -328,16 +354,43 @@ impl Drop for HiddenBrowser {
     }
 }
 
+/// How to repeat a download natively when the reqwest download is refused.
+pub(crate) struct NativeFallback<'a> {
+    /// Loading this url starts the download again.
+    pub trigger: &'a Url,
+    /// The download must start within this time.
+    pub start_timeout: Duration,
+    /// Reports that mean the download will not start (e.g. `no-button`).
+    pub fail_reports: &'a [&'a str],
+}
+
+/// Whether a refused reqwest download should be repeated by the browser: the server answered,
+/// but with a page or an HTTP error status (`save_stream` maps 404 to `NotFound` and other
+/// statuses to `Retryable("HTTP <code> ...")`). Transport and I/O errors are not.
+pub(crate) fn should_fallback_native(err: &DownloadError) -> bool {
+    match err {
+        DownloadError::NotAFile(_)
+        | DownloadError::NotFound(_)
+        | DownloadError::LoginRequired(_)
+        | DownloadError::RateLimited(_) => true,
+        DownloadError::Retryable(message) => message
+            .strip_prefix("HTTP ")
+            .and_then(|rest| rest.get(..3))
+            .and_then(|code| code.parse::<u16>().ok())
+            .is_some_and(|code| (400..500).contains(&code)),
+        _ => false,
+    }
+}
+
 /// Saves a download the page requested to `out_dir/<safe suggested name>`: first with reqwest
-/// and the window's cookies, and when the server answers with a page instead of the file
-/// (`NotAFile`), natively by loading `native_trigger` again. Returns right away when the file is
-/// already there.
+/// and the window's cookies, and when the server refuses that ([`should_fallback_native`]),
+/// natively as described by `native`. Returns right away when the file is already there.
 pub(crate) async fn save_download(
     browser: &mut HiddenBrowser,
     http: &reqwest::Client,
     request: DownloadRequest,
     referer: Option<&str>,
-    native_trigger: &Url,
+    native: &NativeFallback<'_>,
     out_dir: &Path,
     progress: FileProgress<'_>,
 ) -> Result<PathBuf, DownloadError> {
@@ -377,8 +430,8 @@ pub(crate) async fn save_download(
         let opts = SaveOptions { size: None, sha256: None, headers, reject_html: true };
         match save_stream(http, request.url.as_str(), &target, opts, &|done, total| progress(&file_name, done, total)).await {
             Ok(()) => return Ok(target),
-            Err(DownloadError::NotAFile(why)) => {
-                log::info!("server refused the direct download of {file_name} ({why}), letting the browser download it");
+            Err(e) if should_fallback_native(&e) => {
+                log::info!("server refused the direct download of {file_name} ({e}), letting the browser download it");
             }
             Err(e) => return Err(e),
         }
@@ -387,7 +440,7 @@ pub(crate) async fn save_download(
     }
 
     progress(&file_name, 0, None);
-    browser.native_download(native_trigger, &target, NATIVE_TIMEOUT).await?;
+    browser.native_download(native, &target).await?;
     Ok(target)
 }
 
@@ -404,5 +457,37 @@ mod tests {
         assert_eq!(r.data["title"], "a.zip");
         assert!(decode_report(&Url::parse("https://workupload.com/file/abc").unwrap()).is_none());
         assert!(decode_report(&Url::parse("https://konoasset.invalid/report?d=not-json").unwrap()).is_none());
+    }
+
+    #[test]
+    fn falls_back_to_native_when_the_server_refuses() {
+        use DownloadError::*;
+        for err in [
+            NotAFile("rejected".into()),
+            NotFound("u".into()),
+            LoginRequired("u".into()),
+            RateLimited("u".into()),
+            Retryable("HTTP 400 Bad Request for u".into()),
+            Retryable("HTTP 405 Method Not Allowed for u".into()),
+            Retryable("HTTP 429 Too Many Requests for u".into()),
+        ] {
+            assert!(should_fallback_native(&err), "{err:?}");
+        }
+        for err in [
+            Retryable("HTTP 502 Bad Gateway for u".into()),
+            Retryable("error sending request for url (u)".into()),
+            Retryable("size mismatch: got 1 bytes, expected 2".into()),
+            Fatal("x".into()),
+            WrongPassword,
+        ] {
+            assert!(!should_fallback_native(&err), "{err:?}");
+        }
+    }
+
+    #[test]
+    fn report_timeouts_are_recognized() {
+        assert!(is_report_timeout(&DownloadError::Retryable(format!("{REPORT_TIMEOUT}: no [\"ready\"] within 90s"))));
+        assert!(!is_report_timeout(&DownloadError::Retryable("browser window closed".into())));
+        assert!(!is_report_timeout(&DownloadError::Fatal(REPORT_TIMEOUT.into())));
     }
 }
