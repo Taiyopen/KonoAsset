@@ -217,6 +217,14 @@ async getBoothUrl(id: number) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async suggestAssetFieldsWithAi(boothItemId: number, assetType: AssetType) : Promise<Result<AiSuggestion, AiSuggestErrorKind>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("suggest_asset_fields_with_ai", { boothItemId, assetType }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async checkForUpdate() : Promise<Result<boolean, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("check_for_update") };
@@ -518,6 +526,8 @@ updateProgress: "update-progress"
 /** user-defined types **/
 
 export type AddAssetDeepLink = { path: string[]; boothItemId: number | null }
+export type AiSuggestErrorKind = "NotConfigured" | "InvalidApiKey" | "InsufficientCredit" | "RateLimited" | "Overloaded" | "Timeout" | "Network" | "Refused" | "Truncated" | "InvalidResponse"
+export type AiSuggestion = { category: SuggestedValue | null; supportedAvatars: SuggestedValue[]; tags: SuggestedValue[] }
 export type AppState = { sort?: SortState; displayStyle: DisplayStyle }
 export type AssetDescription = { name: string; creator: string; imageFilename: string | null; tags: string[]; memo: string | null; boothItemId: number | null; dependencies: string[]; createdAt: number; publishedAt: number | null }
 export type AssetImportRequest<T> = { preAsset: T; absolutePaths: string[]; deleteSource: boolean }
@@ -559,6 +569,7 @@ export type ResetApplicationRequest = { resetPreferences: boolean; deleteMetadat
 export type SimplifiedDirEntry = { entryType: EntryType; name: string; absolutePath: string }
 export type SortBy = "Name" | "Creator" | "CreatedAt" | "PublishedAt"
 export type SortState = { sortBy: SortBy; reversed: boolean }
+export type SuggestedValue = { value: string; isNew: boolean }
 export type TaskStatus = "Running" | "Completed" | "Cancelled" | "Failed"
 export type TaskStatusChanged = { id: string; status: TaskStatus }
 export type Theme = "light" | "dark" | "system"

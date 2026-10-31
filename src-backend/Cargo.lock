@@ -2523,6 +2523,7 @@ dependencies = [
 name = "konoasset"
 version = "1.2.6"
 dependencies = [
+ "ai_suggest",
  "async_zip",
  "booth",
  "changelog",

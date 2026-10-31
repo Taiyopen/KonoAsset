@@ -20,6 +20,7 @@ tauri-build.workspace = true
 
 [dependencies]
 # Local crates
+ai_suggest.workspace = true
 booth.workspace = true
 changelog.workspace = true
 file.workspace = true

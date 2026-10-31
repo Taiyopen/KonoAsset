@@ -80,6 +80,7 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(builder.invoke_handler())
         .manage(Mutex::new(BoothFetcher::new(VERSION)))
+        .manage(ai_suggest::ReqwestTransport::new(VERSION))
         .manage(arc_mutex(LocalizationData::default()))
         .manage(arc_mutex(AssetVolumeStatisticsCache::new()))
         .setup(move |app| {
