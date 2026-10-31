@@ -4,6 +4,7 @@ mod direct;
 mod gdrive;
 mod onedrive;
 mod pixeldrain;
+mod workupload;
 
 use std::path::{Path, PathBuf};
 
@@ -12,8 +13,8 @@ use reqwest::StatusCode;
 
 use crate::error::DownloadError;
 use crate::http::{filename_from_headers, percent_decode, safe_name, save_stream, SaveOptions};
-use crate::link::{Job, SiteKind};
-use crate::site::{Ctx, FileItem, FileProgress, Site};
+use crate::link::SiteKind;
+use crate::site::{FileProgress, Site};
 
 pub const PIXELDRAIN_API: &str = "https://pixeldrain.com/api";
 
@@ -24,29 +25,7 @@ pub fn create(kind: SiteKind) -> Box<dyn Site> {
         SiteKind::Pixeldrain => Box::new(pixeldrain::Pixeldrain::new(PIXELDRAIN_API.to_string())),
         SiteKind::OneDrive => Box::new(onedrive::OneDrive::new()),
         SiteKind::GoogleDrive => Box::new(gdrive::GoogleDrive::new()),
-        // Replaced by a real implementation in a later task.
-        SiteKind::Workupload => Box::new(NotImplemented),
-    }
-}
-
-/// Placeholder for sites that are not implemented yet.
-struct NotImplemented;
-
-#[async_trait::async_trait]
-impl Site for NotImplemented {
-    async fn list_files(&mut self, _ctx: &Ctx, _job: &Job) -> Result<(Option<String>, Vec<FileItem>), DownloadError> {
-        Err(DownloadError::Fatal("not implemented".into()))
-    }
-
-    async fn download(
-        &mut self,
-        _ctx: &Ctx,
-        _item: &FileItem,
-        _password: &str,
-        _out_dir: &Path,
-        _progress: FileProgress<'_>,
-    ) -> Result<PathBuf, DownloadError> {
-        Err(DownloadError::Fatal("not implemented".into()))
+        SiteKind::Workupload => Box::new(workupload::Workupload::new()),
     }
 }
 
@@ -120,6 +99,8 @@ pub(crate) async fn save_named(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::link::Job;
+    use crate::site::Ctx;
 
     #[test]
     fn check_status_maps_codes() {
@@ -138,12 +119,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stub_sites_are_not_implemented() {
+    async fn browser_sites_need_an_app() {
         let ctx = Ctx { app: None, http: crate::client() };
-        let job = Job { kind: crate::link::JobKind::File, id: "x".into(), password: String::new() };
-        for kind in [SiteKind::Workupload] {
+        for (kind, id) in [(SiteKind::Workupload, "x"), (SiteKind::OneDrive, "https://1drv.ms/u/s!abc")] {
+            let job = Job { kind: crate::link::JobKind::File, id: id.into(), password: String::new() };
             let err = create(kind).list_files(&ctx, &job).await.unwrap_err();
-            assert_eq!(err, DownloadError::Fatal("not implemented".into()));
+            assert_eq!(err, DownloadError::Fatal("browser unavailable".into()));
         }
     }
 }

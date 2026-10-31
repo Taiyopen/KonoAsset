@@ -1,22 +1,113 @@
-//! OneDrive. This file handles company/school SharePoint links (`*.sharepoint.com`), where
-//! adding `download=1` to the url makes the server answer with the file itself. Personal
-//! OneDrive links need a webview and are not implemented yet.
+//! OneDrive.
+//!
+//! * Company/school SharePoint links (`*.sharepoint.com`): adding `download=1` to the url makes
+//!   the server answer with the file itself.
+//! * Personal OneDrive (`1drv.ms`, `onedrive.live.com`): the share page is opened in a hidden
+//!   browser and its Download button clicked. A shared folder comes as one zip.
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
+use tauri::Url;
+
+use crate::browser::{require_app, save_download, HiddenBrowser};
 use crate::error::DownloadError;
 use crate::link::Job;
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
 use super::{probe, save_named};
 
+const BUTTON_TIMEOUT: Duration = Duration::from_secs(60);
+/// A folder is zipped first, which may take a while.
+const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(180);
+
+/// Once the page has loaded, looks for a visible Download button every second (the selectors
+/// differ between OneDrive versions), reports `clicked` and clicks it. The report goes first: it
+/// is a navigation and would cancel a download the click starts by navigating. Reports
+/// `no-button` after 45 s, and right away on a Microsoft login page.
+const INIT_JS: &str = r#"(() => {
+  const host = location.hostname;
+  if (host === 'login.live.com' || host === 'login.microsoftonline.com') {
+    addEventListener('DOMContentLoaded', () => window.__konoReport('no-button', { title: document.title, login: true }));
+    return;
+  }
+  if (!host.includes('onedrive') && !host.includes('1drv')) return;
+  const selectors = [
+    "button[data-automationid='download']",
+    "button[data-automationid='downloadCommand']",
+    "[role='menuitem'][name='Download']",
+    "button[name='Download']",
+    "button[aria-label^='Download']",
+  ];
+  const visible = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
+  };
+  const start = () => {
+    let waited = 0;
+    const timer = setInterval(() => {
+      for (const selector of selectors) {
+        const el = document.querySelector(selector);
+        if (el && visible(el)) {
+          clearInterval(timer);
+          window.__konoReport('clicked', { title: document.title, selector });
+          setTimeout(() => el.click(), 1000);
+          return;
+        }
+      }
+      waited += 1000;
+      if (waited >= 45000) {
+        clearInterval(timer);
+        window.__konoReport('no-button', { title: document.title });
+      }
+    }, 1000);
+  };
+  if (document.readyState === 'complete') start(); else addEventListener('load', start);
+})();"#;
+
 #[derive(Default)]
-pub struct OneDrive;
+pub struct OneDrive {
+    browser: Option<HiddenBrowser>,
+}
 
 impl OneDrive {
     pub fn new() -> Self {
-        Self
+        Self::default()
     }
+
+    async fn download_personal(
+        &mut self,
+        ctx: &Ctx,
+        url: &str,
+        out_dir: &Path,
+        progress: FileProgress<'_>,
+    ) -> Result<PathBuf, DownloadError> {
+        let app = require_app(ctx)?;
+        let share = Url::parse(url).map_err(|e| DownloadError::Fatal(format!("bad OneDrive url {url}: {e}")))?;
+        let browser = HiddenBrowser::reuse_or_open(&mut self.browser, app, &share, INIT_JS).await?;
+        let report = match browser.wait_report(BUTTON_TIMEOUT, &["clicked", "no-button"]).await {
+            Ok(report) => report,
+            Err(_) if is_login(browser.current_url()) => return Err(login_required(url)),
+            Err(e) => return Err(e),
+        };
+        if report.kind == "no-button" {
+            if is_login(browser.current_url()) {
+                return Err(login_required(url));
+            }
+            return Err(DownloadError::Retryable("no Download button on the OneDrive page".into()));
+        }
+        log::info!("onedrive: Download button clicked ({})", report.str("selector"));
+        let request = browser.wait_download(DOWNLOAD_TIMEOUT).await?;
+        save_download(browser, &ctx.http, request, None, &share, out_dir, progress).await
+    }
+}
+
+fn is_login(url: Option<Url>) -> bool {
+    url.is_some_and(|u| u.as_str().contains("login.live.com") || u.as_str().contains("login.microsoftonline.com"))
+}
+
+fn login_required(url: &str) -> DownloadError {
+    DownloadError::LoginRequired(format!("{url} needs a login or is not shared publicly"))
 }
 
 fn is_sharepoint(url: &str) -> bool {
@@ -63,9 +154,9 @@ pub(crate) async fn download_sharepoint(
 
 #[async_trait::async_trait]
 impl Site for OneDrive {
-    async fn list_files(&mut self, _ctx: &Ctx, job: &Job) -> Result<(Option<String>, Vec<FileItem>), DownloadError> {
+    async fn list_files(&mut self, ctx: &Ctx, job: &Job) -> Result<(Option<String>, Vec<FileItem>), DownloadError> {
         if !is_sharepoint(&job.id) {
-            return Err(DownloadError::Fatal("not implemented".into()));
+            require_app(ctx)?;
         }
         Ok((None, vec![FileItem { id: job.id.clone(), subdir: String::new(), name: None }]))
     }
@@ -79,7 +170,7 @@ impl Site for OneDrive {
         progress: FileProgress<'_>,
     ) -> Result<PathBuf, DownloadError> {
         if !is_sharepoint(&item.id) {
-            return Err(DownloadError::Fatal("not implemented".into()));
+            return self.download_personal(ctx, &item.id, out_dir, progress).await;
         }
         download_sharepoint(&ctx.http, &item.id, out_dir, progress).await
     }
@@ -132,10 +223,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn non_sharepoint_hosts_are_not_implemented_yet() {
+    async fn personal_onedrive_needs_a_browser() {
         let ctx = Ctx { app: None, http: client() };
-        let job = Job { kind: JobKind::File, id: "https://1drv.ms/u/s!abc".into(), password: String::new() };
-        let err = OneDrive::new().list_files(&ctx, &job).await.unwrap_err();
-        assert_eq!(err, DownloadError::Fatal("not implemented".into()));
+        let unavailable = DownloadError::Fatal("browser unavailable".into());
+        let url = "https://1drv.ms/u/s!abc";
+        let job = Job { kind: JobKind::File, id: url.into(), password: String::new() };
+        assert_eq!(OneDrive::new().list_files(&ctx, &job).await.unwrap_err(), unavailable);
+        let item = FileItem { id: url.into(), subdir: String::new(), name: None };
+        let dir = tempfile::tempdir().unwrap();
+        let noop = |_: &str, _: u64, _: Option<u64>| {};
+        let err = OneDrive::new().download(&ctx, &item, "", dir.path(), &noop).await.unwrap_err();
+        assert_eq!(err, unavailable);
+    }
+
+    #[test]
+    fn login_pages_are_detected() {
+        assert!(is_login(Url::parse("https://login.live.com/oauth20_authorize.srf?x=1").ok()));
+        assert!(is_login(Url::parse("https://login.microsoftonline.com/common").ok()));
+        assert!(!is_login(Url::parse("https://onedrive.live.com/?id=abc").ok()));
+        assert!(!is_login(None));
     }
 }
