@@ -1,5 +1,66 @@
 [
   {
+    "version": "1.2.7",
+    "features": [
+      {
+        "text": "Categories, supported avatars and tags can now be filled in automatically with Claude when adding assets (requires an API key in settings)",
+        "langs": [
+          {
+            "lang": ["ja-JP"],
+            "text": "アセット追加時にClaudeでカテゴリ・対応アバター・タグを自動入力できるように（設定でAPIキーの入力が必要）"
+          },
+          {
+            "lang": ["zh-TW"],
+            "text": "新增素材時，可用 Claude 自動填入分類、對應虛擬角色與標籤（需在設定中填入 API 金鑰）"
+          }
+        ]
+      },
+      {
+        "text": "Assets can now be added directly from download links (workupload, pixeldrain, Google Drive, OneDrive, direct links) and are downloaded and imported in the background",
+        "langs": [
+          {
+            "lang": ["ja-JP"],
+            "text": "ダウンロードリンクから直接アセットを追加できるように（workupload、pixeldrain、Google Drive、OneDrive、直接リンクに対応、バックグラウンドでダウンロード・インポート）"
+          },
+          {
+            "lang": ["zh-TW"],
+            "text": "可直接貼上下載連結新增素材（支援 workupload、pixeldrain、Google Drive、OneDrive 與直接連結），下載與匯入會在背景進行"
+          }
+        ]
+      }
+    ],
+    "fixes": [
+      {
+        "text": "Fixed an \"IO error\" that prevented opening the folder of assets containing only non-unitypackage files such as zip on some Windows environments",
+        "langs": [
+          {
+            "lang": ["ja-JP"],
+            "text": "一部のWindows環境で、zipなどunitypackage以外のファイルのみのアセットを開くと「IO error」でフォルダを開けない問題を修正"
+          },
+          {
+            "lang": ["zh-TW"],
+            "text": "修正在部分 Windows 環境中，開啟只有 zip 等非 unitypackage 檔案的素材時出現「IO error」而無法開啟資料夾的問題"
+          }
+        ]
+      }
+    ],
+    "others": [
+      {
+        "text": "This is a fork build: updates are now delivered from github.com/Taiyopen/KonoAsset",
+        "langs": [
+          {
+            "lang": ["ja-JP"],
+            "text": "フォーク版のため、アップデートは github.com/Taiyopen/KonoAsset から配信されるように"
+          },
+          {
+            "lang": ["zh-TW"],
+            "text": "此為 fork 版本，更新改由 github.com/Taiyopen/KonoAsset 提供"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.2.6",
     "features": [
       {

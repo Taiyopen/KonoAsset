@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use super::definitions::ChangelogVersion;
 
-const URL: &str = "https://releases.konoasset.dev/manifests/changelog.json";
+const URL: &str = "https://raw.githubusercontent.com/Taiyopen/KonoAsset/main/changelog.json";
 
 pub async fn fetch_and_parse_changelog<S: AsRef<str>>(
     version: S,

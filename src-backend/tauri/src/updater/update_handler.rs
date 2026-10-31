@@ -1,13 +1,8 @@
 use changelog::ChangelogVersion;
-use model::preference::UpdateChannel;
 use serde::Serialize;
-use tauri::{AppHandle, Url};
+use tauri::AppHandle;
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tauri_specta::Event;
-
-// このフォーク版では公式のアップデートを確認しない。
-// 公式の新バージョンをインストールするとフォーク版の機能が失われるため。
-const OFFICIAL_UPDATES_ENABLED: bool = false;
 
 pub struct UpdateHandler {
     app_handle: AppHandle,
@@ -51,31 +46,14 @@ impl UpdateHandler {
         }
     }
 
-    pub async fn check_for_update(
-        &mut self,
-        channel: &UpdateChannel,
-    ) -> tauri_plugin_updater::Result<bool> {
-        if !OFFICIAL_UPDATES_ENABLED {
-            log::info!("official update check is disabled in this fork build");
-
-            self.update_available = false;
-            self.update_version = None;
-
-            self.initialized = true;
-            return Ok(false);
-        }
-
-        let url = format!(
-            "https://releases.konoasset.dev/manifests/{}.json",
-            channel.as_str()
-        );
-
-        log::info!("checking for update from {}", url);
+    // フォーク版は tauri.conf.json の endpoints（GitHub Releases）だけを見る。
+    // GitHub Releases には stable / pre-release の別マニフェストがないため、チャンネルは区別しない。
+    pub async fn check_for_update(&mut self) -> tauri_plugin_updater::Result<bool> {
+        log::info!("checking for update from GitHub Releases");
 
         let result = self
             .app_handle
             .updater_builder()
-            .endpoints(vec![Url::parse(&url).unwrap()])?
             .build()?
             .check()
             .await?;

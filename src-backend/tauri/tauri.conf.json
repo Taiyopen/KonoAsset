@@ -30,7 +30,7 @@
   "bundle": {
     "active": true,
     "targets": "nsis",
-    "createUpdaterArtifacts": false,
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -46,8 +46,8 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVENjIwRUZCQjg1Rjk0RjUKUldUMWxGKzQrdzVpN1hlT0hrcEpaK0Q1RXFKVzF2YXMzNFJZVDBVSHh6djJNNU1zQ2hMR05oTHYK",
-      "endpoints": ["https://releases.konoasset.dev/manifests/latest.json"]
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3RURDNzNCQTlFQTQwODgKUldTSVFPcXBPOGZ0TisyL2w4bkd4K2Ezaldacm4yVkJDQmNvY3dHcnFZWnNqZjM2NmU2bHd4M0UK",
+      "endpoints": ["https://github.com/Taiyopen/KonoAsset/releases/latest/download/latest.json"]
     },
     "deep-link": {
       "desktop": {

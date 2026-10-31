@@ -16,7 +16,7 @@
 - 修正在部分 Windows 環境中，開啟只有 zip 等非 unitypackage 檔案的素材時出現「IO error」而無法開啟資料夾的問題
 
 ### ⚙️其他
-- 此為 fork 版本，不再檢查官方版的自動更新，以免被官方版覆蓋
+- 此為 fork 版本，更新改由 github.com/Taiyopen/KonoAsset 提供
 
 ## 1.2.6
 

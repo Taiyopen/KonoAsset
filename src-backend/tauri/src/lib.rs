@@ -12,7 +12,7 @@ use download_job::{
 };
 use file::modify_guard::{self, FileTransferGuard};
 use language::LocalizationData;
-use model::preference::{PreferenceStore, UpdateChannel};
+use model::preference::PreferenceStore;
 use state::StateHandler;
 use statistics::{AssetVolumeEstimatedEvent, AssetVolumeStatisticsCache};
 use storage::{asset_storage::AssetStorage, delete::delete_temporary_images};
@@ -168,17 +168,13 @@ pub fn run() {
             };
 
             let data_dir = pref_store.get_data_dir().clone();
-            let update_channel = pref_store.update_channel.clone();
             let state_handler = StateHandler::load_or_default(state_file_path);
 
             let pximg_resolver = PximgResolver::new(data_dir.join("images"), VERSION);
 
             app.manage(arc_mutex(pref_store));
             app.manage(arc_mutex(pximg_resolver));
-            app.manage(arc_mutex(get_update_handler(
-                app.handle().clone(),
-                &update_channel,
-            )));
+            app.manage(arc_mutex(get_update_handler(app.handle().clone())));
             app.manage(arc_mutex(state_handler));
 
             let store_provider = match load_store_provider(&data_dir, &app_local_data_dir) {
@@ -216,10 +212,10 @@ where
     }
 }
 
-fn get_update_handler(app: AppHandle, channel: &UpdateChannel) -> UpdateHandler {
+fn get_update_handler(app: AppHandle) -> UpdateHandler {
     tauri::async_runtime::block_on(async move {
         let mut update_handler = UpdateHandler::new(app);
-        let result = update_handler.check_for_update(channel).await;
+        let result = update_handler.check_for_update().await;
 
         if let Err(err) = result {
             log::error!("Failed to check for update: {}", err);
