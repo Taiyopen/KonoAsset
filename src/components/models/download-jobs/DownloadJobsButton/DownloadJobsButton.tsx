@@ -14,6 +14,7 @@ export const DownloadJobsButton: FC = () => {
 
   const jobs = useDownloadJobStore((state) => state.jobs)
   const initialize = useDownloadJobStore((state) => state.initialize)
+  const removeJob = useDownloadJobStore((state) => state.removeJob)
   const refreshAssetSummaries = useAssetSummaryViewStore(
     (state) => state.refreshAssetSummaries,
   )
@@ -51,7 +52,9 @@ export const DownloadJobsButton: FC = () => {
     initialize((job, transition) => onTransitionRef.current(job, transition))
   }, [initialize])
 
-  const runCommand = async (command: Promise<Result<null, string>>) => {
+  const runCommand = async (
+    command: Promise<Result<null, string>>,
+  ): Promise<Result<null, string>> => {
     const result = await command
 
     if (result.status === 'error') {
@@ -59,6 +62,17 @@ export const DownloadJobsButton: FC = () => {
         title: result.error,
         variant: 'destructive',
       })
+    }
+
+    return result
+  }
+
+  // 削除はバックエンドがイベントを送らないため、成功時にだけ自分で一覧から外す
+  const onDismiss = async (id: string) => {
+    const result = await runCommand(commands.dismissDownloadJob(id))
+
+    if (result.status === 'ok') {
+      removeJob(id)
     }
   }
 
@@ -74,7 +88,7 @@ export const DownloadJobsButton: FC = () => {
       onRetry={(id, password) =>
         runCommand(commands.retryDownloadJob(id, password))
       }
-      onDismiss={(id) => runCommand(commands.dismissDownloadJob(id))}
+      onDismiss={onDismiss}
     />
   )
 }

@@ -5,6 +5,7 @@ import {
   detectTransitions,
   errorKindLocaleKey,
   progressPercent,
+  removeJob,
   upsertJob,
 } from './logic'
 
@@ -53,6 +54,20 @@ describe('upsertJob', () => {
     upsertJob(jobs, job({ id: 'new' }))
 
     expect(jobs).toHaveLength(1)
+  })
+})
+
+describe('removeJob', () => {
+  test('removes the job with the given id', () => {
+    const jobs = [job({ id: 'a' }), job({ id: 'b' }), job({ id: 'c' })]
+
+    expect(removeJob(jobs, 'b').map((j) => j.id)).toEqual(['a', 'c'])
+  })
+
+  test('returns the same contents when the id is unknown', () => {
+    const jobs = [job({ id: 'a' })]
+
+    expect(removeJob(jobs, 'x')).toEqual(jobs)
   })
 })
 

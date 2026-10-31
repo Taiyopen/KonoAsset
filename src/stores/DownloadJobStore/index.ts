@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { commands, DownloadJob, events } from '@/lib/bindings'
-import { detectTransitions, upsertJob } from './logic'
+import {
+  detectTransitions,
+  removeJob as removeJobFromList,
+  upsertJob,
+} from './logic'
 
 type Transition = 'completed' | 'failed'
 
@@ -10,6 +14,7 @@ type State = {
   initialize: (
     onTransition: (job: DownloadJob, transition: Transition) => void,
   ) => Promise<void>
+  removeJob: (id: string) => void
 }
 
 export const useDownloadJobStore = create<State>((set, get) => ({
@@ -21,6 +26,8 @@ export const useDownloadJobStore = create<State>((set, get) => ({
     }
 
     set({ initialized: true })
+
+    let listening = false
 
     try {
       // 先に購読してから一覧を取得し、取得中に届いた更新を取りこぼさない
@@ -37,6 +44,8 @@ export const useDownloadJobStore = create<State>((set, get) => ({
           onTransition(job, transition)
         }
       })
+
+      listening = true
 
       const result = await commands.listDownloadJobs()
 
@@ -55,6 +64,14 @@ export const useDownloadJobStore = create<State>((set, get) => ({
       })
     } catch (error) {
       console.error('Failed to initialize download jobs:', error)
+
+      // 購読できていない場合だけ、次のマウントで再試行できるようにする
+      if (!listening) {
+        set({ initialized: false })
+      }
     }
+  },
+  removeJob: (id) => {
+    set((state) => ({ jobs: removeJobFromList(state.jobs, id) }))
   },
 }))

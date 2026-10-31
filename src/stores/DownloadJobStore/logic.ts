@@ -62,3 +62,6 @@ const ERROR_KIND_LOCALE_KEYS: Record<DownloadErrorKind, string> = {
 
 export const errorKindLocaleKey = (kind: DownloadErrorKind | null): string =>
   ERROR_KIND_LOCALE_KEYS[kind ?? 'Other']
+
+export const removeJob = (jobs: DownloadJob[], id: string): DownloadJob[] =>
+  jobs.filter((job) => job.id !== id)
