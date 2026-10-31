@@ -116,15 +116,25 @@ impl DownloadJobManager {
         jobs
     }
 
+    /// Only queued or downloading jobs can be cancelled: aborting an import half-way could
+    /// leave a partially written asset behind.
     pub async fn cancel(&mut self, id: Uuid) -> Result<(), String> {
         let index = self.position(id)?;
         let entry = &mut self.jobs[index];
         {
             let mut job = lock(&entry.job);
-            if !job.status.is_active() {
-                return Err(format!("Download job {id} is not running"));
+            match job.status {
+                DownloadJobStatus::Queued | DownloadJobStatus::Downloading => {}
+                DownloadJobStatus::Importing => {
+                    return Err(format!(
+                        "Download job {id} cannot be cancelled while importing"
+                    ));
+                }
+                _ => return Err(format!("Download job {id} is not running")),
             }
-            // Set while locked: the task never overwrites a job that is no longer active.
+            // Decided under the job lock, which the task also holds when it switches to
+            // Importing: either this wins and the task stops before importing, or the job is
+            // already Importing and the cancel is refused. The abort never hits an import.
             job.status = DownloadJobStatus::Cancelled;
             (self.emit)(job.clone());
         }
@@ -275,6 +285,7 @@ impl Run {
             }
         };
 
+        // Refused once cancelled; after this succeeds `cancel` is refused (see `cancel`).
         if !self.update(|job| job.status = DownloadJobStatus::Importing) {
             return;
         }
@@ -377,6 +388,8 @@ mod tests {
         import_results: StdMutex<VecDeque<Result<(), String>>>,
         /// When set, every download waits for one permit.
         gate: Option<Arc<Semaphore>>,
+        /// When set, every import waits for one permit.
+        import_gate: Option<Arc<Semaphore>>,
         /// `(sleep before in ms, progress)` reported by every download.
         progress_steps: Vec<(u64, Progress)>,
         download_calls: AtomicU32,
@@ -427,6 +440,9 @@ mod tests {
             _paths: Vec<PathBuf>,
         ) -> Result<(), String> {
             self.import_calls.fetch_add(1, Ordering::SeqCst);
+            if let Some(gate) = &self.import_gate {
+                gate.acquire().await.unwrap().forget();
+            }
             self.import_results
                 .lock()
                 .unwrap()
@@ -514,6 +530,109 @@ mod tests {
             downloaded,
             total: Some(1000),
         }
+    }
+
+    fn count_status(
+        manager: &DownloadJobManager,
+        ids: &[Uuid],
+        status: DownloadJobStatus,
+    ) -> usize {
+        ids.iter()
+            .filter(|id| job(manager, **id).status == status)
+            .count()
+    }
+
+    #[tokio::test]
+    async fn cancel_during_import_is_rejected() {
+        let import_gate = Arc::new(Semaphore::new(0));
+        let backend = FakeBackend {
+            import_gate: Some(import_gate.clone()),
+            ..Default::default()
+        };
+        let mut h = harness("cancel_import", backend);
+
+        let id = h.manager.enqueue(request(PIXELDRAIN)).unwrap();
+        wait_until(|| h.backend.import_calls.load(Ordering::SeqCst) == 1).await;
+        assert_eq!(job(&h.manager, id).status, DownloadJobStatus::Importing);
+
+        assert!(h.manager.cancel(id).await.is_err());
+        assert_eq!(job(&h.manager, id).status, DownloadJobStatus::Importing);
+
+        import_gate.add_permits(1);
+        wait_for_status(&h.manager, id, DownloadJobStatus::Completed).await;
+        assert_eq!(h.backend.import_calls.load(Ordering::SeqCst), 1);
+        assert!(
+            !h.events
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|job| job.status == DownloadJobStatus::Cancelled)
+        );
+        assert!(!h.root.join(id.to_string()).exists());
+    }
+
+    #[tokio::test]
+    async fn at_most_three_jobs_download_at_once() {
+        let gate = Arc::new(Semaphore::new(0));
+        let backend = FakeBackend {
+            gate: Some(gate.clone()),
+            ..Default::default()
+        };
+        let mut h = harness("three_at_once", backend);
+
+        let ids: Vec<Uuid> = (0..4)
+            .map(|_| h.manager.enqueue(request(PIXELDRAIN)).unwrap())
+            .collect();
+        wait_until(|| h.backend.download_calls.load(Ordering::SeqCst) == 3).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        assert_eq!(h.backend.download_calls.load(Ordering::SeqCst), 3);
+        assert_eq!(
+            count_status(&h.manager, &ids, DownloadJobStatus::Downloading),
+            3
+        );
+        assert_eq!(count_status(&h.manager, &ids, DownloadJobStatus::Queued), 1);
+
+        gate.add_permits(1);
+        wait_until(|| h.backend.download_calls.load(Ordering::SeqCst) == 4).await;
+        assert_eq!(count_status(&h.manager, &ids, DownloadJobStatus::Queued), 0);
+
+        gate.add_permits(3);
+        wait_until(|| count_status(&h.manager, &ids, DownloadJobStatus::Completed) == 4).await;
+    }
+
+    #[tokio::test]
+    async fn cancel_queued_job_frees_queue() {
+        let gate = Arc::new(Semaphore::new(0));
+        let backend = FakeBackend {
+            gate: Some(gate.clone()),
+            ..Default::default()
+        };
+        let mut h = harness("cancel_queued", backend);
+
+        let running: Vec<Uuid> = (0..3)
+            .map(|_| h.manager.enqueue(request(PIXELDRAIN)).unwrap())
+            .collect();
+        let queued = h.manager.enqueue(request(PIXELDRAIN)).unwrap();
+        let last = h.manager.enqueue(request(PIXELDRAIN)).unwrap();
+        wait_until(|| h.backend.download_calls.load(Ordering::SeqCst) == 3).await;
+        assert_eq!(job(&h.manager, queued).status, DownloadJobStatus::Queued);
+
+        // Like a retried job, a queued job may already have a folder from an earlier run.
+        let dir = h.root.join(queued.to_string());
+        std::fs::create_dir_all(dir.join("1")).unwrap();
+        h.manager.cancel(queued).await.unwrap();
+        assert_eq!(job(&h.manager, queued).status, DownloadJobStatus::Cancelled);
+        assert!(!dir.exists());
+
+        // The freed queue position goes to the next job.
+        gate.add_permits(1);
+        wait_for_status(&h.manager, last, DownloadJobStatus::Downloading).await;
+        gate.add_permits(3);
+        for id in running.iter().chain([&last]) {
+            wait_for_status(&h.manager, *id, DownloadJobStatus::Completed).await;
+        }
+        assert_eq!(h.backend.download_calls.load(Ordering::SeqCst), 4);
+        assert_eq!(job(&h.manager, queued).status, DownloadJobStatus::Cancelled);
     }
 
     #[tokio::test]
