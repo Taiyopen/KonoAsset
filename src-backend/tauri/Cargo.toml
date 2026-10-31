@@ -23,6 +23,7 @@ tauri-build.workspace = true
 ai_suggest.workspace = true
 booth.workspace = true
 changelog.workspace = true
+downloader.workspace = true
 file.workspace = true
 language.workspace = true
 loader.workspace = true
@@ -49,6 +50,7 @@ specta.workspace = true
 specta-typescript.workspace = true
 tauri-specta.workspace = true
 tauri-plugin-deep-link.workspace = true
+async-trait.workspace = true
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance.workspace = true

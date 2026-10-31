@@ -2543,10 +2543,12 @@ name = "konoasset"
 version = "1.2.6"
 dependencies = [
  "ai_suggest",
+ "async-trait",
  "async_zip",
  "booth",
  "changelog",
  "chrono",
+ "downloader",
  "file",
  "language",
  "loader",

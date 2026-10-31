@@ -27,6 +27,9 @@ mod adapter;
 mod command;
 mod deep_link;
 mod definitions;
+// Not wired into commands and setup yet; remove the allow once it is.
+#[allow(dead_code)]
+mod download_job;
 mod importer;
 mod statistics;
 mod updater;
