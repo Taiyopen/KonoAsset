@@ -209,6 +209,11 @@ impl GoogleDrive {
         id: &str,
     ) -> Result<(String, Option<String>, Option<u64>), DownloadError> {
         let not_a_file = || DownloadError::NotAFile(format!("{id} is a web page, not a file"));
+        let rate_limited = || {
+            DownloadError::RateLimited(format!(
+                "too many downloads of this file recently (https://drive.google.com/file/d/{id}/view)"
+            ))
+        };
         let url = format!("{}/download?id={id}&export=download&confirm=t", self.download_base);
         let html = match fetch(client, &url).await? {
             Fetched::File { url, name, size } => return Ok((url, name, size)),
@@ -216,17 +221,11 @@ impl GoogleDrive {
         };
         // The confirmation page comes first: its file name may contain "quota".
         let Some(confirm_url) = confirm_form_url_at(&html, &self.download_base) else {
-            return Err(if is_quota_page(&html) {
-                DownloadError::RateLimited(format!("too many downloads of {id} recently"))
-            } else {
-                not_a_file()
-            });
+            return Err(if is_quota_page(&html) { rate_limited() } else { not_a_file() });
         };
         match fetch(client, &confirm_url).await? {
             Fetched::File { url, name, size } => Ok((url, name, size)),
-            Fetched::Page(html) if is_quota_page(&html) => {
-                Err(DownloadError::RateLimited(format!("too many downloads of {id} recently")))
-            }
+            Fetched::Page(html) if is_quota_page(&html) => Err(rate_limited()),
             Fetched::Page(_) => Err(not_a_file()),
         }
     }
@@ -460,7 +459,13 @@ mod tests {
         let base = serve(vec![html_route("/download", QUOTA)]).await;
         let dir = tempfile::tempdir().unwrap();
         let err = download_one(&base, "1AbC", dir.path()).await.unwrap_err();
-        assert!(matches!(err, DownloadError::RateLimited(_)), "{err:?}");
+        // The user is told to download it in a browser, so the page is part of the message.
+        assert_eq!(
+            err,
+            DownloadError::RateLimited(
+                "too many downloads of this file recently (https://drive.google.com/file/d/1AbC/view)".into()
+            )
+        );
     }
 
     #[tokio::test]
