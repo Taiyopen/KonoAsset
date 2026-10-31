@@ -113,6 +113,8 @@ impl Into<PreferenceStore> for LegacyPreferenceStoreV5 {
             use_unitypackage_selected_open: self.use_unitypackage_selected_open,
             use_trash_bin: true,
             update_channel: self.update_channel,
+            ai_suggest_enabled: false,
+            ai_suggest_api_key: String::new(),
         }
     }
 }
@@ -228,5 +230,39 @@ impl Into<LegacyPreferenceStoreV2> for LegacyPreferenceStoreV1 {
                 .skip_confirmation
                 .open_managed_dir_on_multiple_unitypackage_found,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_v6_without_ai_fields_loads_with_defaults() {
+        let json = r#"{"version":6,"data":{"dataDirPath":"C:/data","theme":"system","language":"zh-TW",
+          "deleteOnImport":false,"zipExtraction":true,"useUnitypackageSelectedOpen":true,
+          "useTrashBin":true,"updateChannel":"Stable"}}"#;
+        let versioned: VersionedPreferences = serde_json::from_str(json).unwrap();
+        let pref: PreferenceStore = versioned.try_into().unwrap();
+        assert!(!pref.ai_suggest_enabled);
+        assert_eq!(pref.ai_suggest_api_key, "");
+    }
+
+    #[test]
+    fn test_ai_fields_round_trip() {
+        let mut pref = PreferenceStore::default("pref.json", "C:/data");
+        pref.ai_suggest_enabled = true;
+        pref.ai_suggest_api_key = "sk-test".to_string();
+
+        let versioned: VersionedPreferences = pref.try_into().unwrap();
+        let json = serde_json::to_string(&versioned).unwrap();
+
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(value["version"], 6);
+
+        let restored: VersionedPreferences = serde_json::from_str(&json).unwrap();
+        let restored: PreferenceStore = restored.try_into().unwrap();
+        assert!(restored.ai_suggest_enabled);
+        assert_eq!(restored.ai_suggest_api_key, "sk-test");
     }
 }

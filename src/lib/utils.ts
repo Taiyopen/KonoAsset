@@ -49,5 +49,7 @@ export const getDefaultPreferences = (): PreferenceStore => {
     useTrashBin: true,
     updateChannel: 'Stable',
     language: 'en-US',
+    aiSuggestEnabled: false,
+    aiSuggestApiKey: '',
   }
 }

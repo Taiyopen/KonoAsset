@@ -83,6 +83,11 @@ pub struct PreferenceStore {
     pub use_trash_bin: bool,
 
     pub update_channel: UpdateChannel,
+
+    #[serde(default)]
+    pub ai_suggest_enabled: bool,
+    #[serde(default)]
+    pub ai_suggest_api_key: String,
 }
 
 impl PreferenceStore {
@@ -115,6 +120,9 @@ impl PreferenceStore {
             use_trash_bin: true,
 
             update_channel: UpdateChannel::Stable,
+
+            ai_suggest_enabled: false,
+            ai_suggest_api_key: String::new(),
         }
     }
 
@@ -134,6 +142,8 @@ impl PreferenceStore {
         self.use_unitypackage_selected_open = other.use_unitypackage_selected_open;
         self.use_trash_bin = other.use_trash_bin;
         self.update_channel = other.update_channel;
+        self.ai_suggest_enabled = other.ai_suggest_enabled;
+        self.ai_suggest_api_key = other.ai_suggest_api_key.clone();
 
         // If the new language is user-provided, skip updating the language field to prevent corruption.
         if let LanguageCode::UserProvided(_) = other.language {
@@ -141,5 +151,23 @@ impl PreferenceStore {
         } else {
             self.language = other.language.clone();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_overwrite_copies_ai_fields() {
+        let mut target = PreferenceStore::default("a.json", "C:/a");
+        let mut source = PreferenceStore::default("b.json", "C:/b");
+        source.ai_suggest_enabled = true;
+        source.ai_suggest_api_key = "sk-test".to_string();
+
+        target.overwrite(&source);
+
+        assert!(target.ai_suggest_enabled);
+        assert_eq!(target.ai_suggest_api_key, "sk-test");
     }
 }

@@ -14,6 +14,8 @@ const mockPreference: PreferenceStore = {
   useTrashBin: true,
   updateChannel: 'Stable',
   language: 'en-US',
+  aiSuggestEnabled: false,
+  aiSuggestApiKey: '',
 }
 
 vi.mock('../logic', () => {
