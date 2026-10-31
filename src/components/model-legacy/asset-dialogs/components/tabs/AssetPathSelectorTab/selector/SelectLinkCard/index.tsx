@@ -10,7 +10,7 @@ type Props = {
 export const SelectLinkCard = ({ onClick }: Props) => {
   const { t } = useLocalization()
   return (
-    <Card className="w-[200px]">
+    <Card>
       <CardContent>
         <div className="m-8 mb-2">
           <Link
@@ -19,7 +19,7 @@ export const SelectLinkCard = ({ onClick }: Props) => {
           />
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="px-4">
         <Button className="mx-auto" onClick={onClick}>
           <ChevronRight size={24} />
           {t('addasset:select-link')}

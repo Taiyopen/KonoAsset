@@ -75,7 +75,7 @@ export const AssetPathSelectorTab = ({
           {t('addasset:select-path:explanation-text')}
         </DialogDescription>
       </DialogHeader>
-      <div className="mx-auto flex justify-between w-[650px] my-4">
+      <div className="grid grid-cols-3 gap-4 my-4">
         <SelectFileCard
           onClick={() => {
             openFileOrDirSelector(false)

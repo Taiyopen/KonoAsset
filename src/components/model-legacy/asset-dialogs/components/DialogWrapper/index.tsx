@@ -39,6 +39,7 @@ export const DialogWrapper: FC<Props> = ({
       <DialogContent
         className={cn(
           'max-w-[650px]',
+          tab === 'selector' && 'max-w-[760px]',
           tab === 'progress' && '[&>button]:hidden',
         )}
         onInteractOutside={(event) => {
