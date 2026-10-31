@@ -12,7 +12,7 @@ use tauri::Url;
 
 use crate::browser::{require_app, save_download, HiddenBrowser, NativeFallback};
 use crate::error::DownloadError;
-use crate::http::redact_url;
+use crate::http::{redact_url, SaveOptions};
 use crate::link::Job;
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -147,7 +147,8 @@ pub(crate) async fn download_sharepoint(
     let head = probe(client, &download_url).await?;
     // Without a file name the server sent a login page instead of the file.
     let name = head.name.ok_or_else(|| login_required(url))?;
-    save_named(client, &head.final_url, &name, head.size, out_dir, progress, false).await
+    let opts = SaveOptions { size: head.size, ..Default::default() };
+    save_named(client, &head.final_url, &name, out_dir, progress, opts).await
 }
 
 #[async_trait::async_trait]

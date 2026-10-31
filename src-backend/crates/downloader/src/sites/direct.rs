@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::error::DownloadError;
-use crate::http::redact_url;
+use crate::http::{redact_url, SaveOptions};
 use crate::link::Job;
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -34,7 +34,8 @@ impl Site for Direct {
             }
             None => name_from_url(&head.final_url).unwrap_or_else(|| "download".to_string()),
         };
-        save_named(&ctx.http, &head.final_url, &name, head.size, out_dir, progress, false).await
+        let opts = SaveOptions { size: head.size, ..Default::default() };
+        save_named(&ctx.http, &head.final_url, &name, out_dir, progress, opts).await
     }
 }
 

@@ -2,7 +2,7 @@
 //! (workupload's "Are you a human?" check, the Download button of personal OneDrive).
 //!
 //! The page has no IPC access. It talks back by navigating to
-//! `https://konoasset.invalid/report?d=<encodeURIComponent(JSON)>` (see [`report_js`]); the
+//! `https://konoasset.invalid/report?d=<encodeURIComponent(JSON)>` (see [`REPORT_JS`]); the
 //! navigation handler decodes the report and cancels the navigation, so the page stays where it
 //! is. Downloads the page starts are cancelled and handed to Rust as a [`DownloadRequest`], which
 //! is then fetched with reqwest using the window's cookies; when the server refuses that, the
@@ -31,11 +31,6 @@ pub(crate) const REPORT_TIMEOUT: &str = "browser page timed out";
 
 /// Defines `window.__konoReport(kind, data)`; prepended to every init script.
 const REPORT_JS: &str = r#"window.__konoReport = (kind, data) => { location.href = 'https://konoasset.invalid/report?d=' + encodeURIComponent(JSON.stringify({ kind, ...data })) };"#;
-
-/// The shared part of every init script.
-pub fn report_js() -> &'static str {
-    REPORT_JS
-}
 
 /// What a page reported: `{ kind, ...data }`.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
@@ -111,7 +106,7 @@ pub struct HiddenBrowser {
 
 impl HiddenBrowser {
     /// Opens an invisible window at `url`. `init_script` runs on every page (main frame only),
-    /// after [`report_js`].
+    /// after [`REPORT_JS`].
     pub async fn open(app: &AppHandle, url: &Url, init_script: &str) -> Result<Self, DownloadError> {
         let label = format!("dl-{}", uuid::Uuid::new_v4());
         let (report_tx, reports) = unbounded_channel();
@@ -129,7 +124,7 @@ impl HiddenBrowser {
             .skip_taskbar(true)
             .incognito(true)
             .user_agent(USER_AGENT)
-            .initialization_script(format!("{}\n{init_script}", report_js()))
+            .initialization_script(format!("{REPORT_JS}\n{init_script}"))
             .on_new_window(|_, _| NewWindowResponse::Deny)
             .on_navigation(move |url| match decode_report(url) {
                 Some(report) => {

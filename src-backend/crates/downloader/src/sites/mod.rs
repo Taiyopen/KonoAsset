@@ -8,11 +8,10 @@ mod workupload;
 
 use std::path::{Path, PathBuf};
 
-use reqwest::header::{HeaderMap, CONTENT_TYPE};
 use reqwest::StatusCode;
 
 use crate::error::DownloadError;
-use crate::http::{filename_from_headers, percent_decode, redact_url, safe_name, save_stream, SaveOptions};
+use crate::http::{filename_from_headers, is_html, percent_decode, redact_url, safe_name, save_stream, SaveOptions};
 use crate::link::SiteKind;
 use crate::site::{FileProgress, Site};
 
@@ -61,11 +60,7 @@ pub(crate) async fn probe(client: &reqwest::Client, url: &str) -> Result<Probe, 
         final_url: response.url().to_string(),
         name: filename_from_headers(response.headers()),
         size: response.content_length(),
-        is_html: response
-            .headers()
-            .get(CONTENT_TYPE)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| v.to_ascii_lowercase().contains("text/html")),
+        is_html: is_html(response.headers()),
     })
 }
 
@@ -76,25 +71,23 @@ pub(crate) fn name_from_url(url: &str) -> Option<String> {
     Some(percent_decode(segment))
 }
 
-/// Downloads `url` to `out_dir/<safe name>`; returns right away when a file of the same size is
-/// already there. With `reject_html`, an HTML answer fails with `NotAFile` instead of being saved.
+/// Downloads `url` to `out_dir/<safe name>` with [`save_stream`]; returns right away when a file
+/// of `opts.size` is already there.
 pub(crate) async fn save_named(
     client: &reqwest::Client,
     url: &str,
     name: &str,
-    size: Option<u64>,
     out_dir: &Path,
     progress: FileProgress<'_>,
-    reject_html: bool,
+    opts: SaveOptions<'_>,
 ) -> Result<PathBuf, DownloadError> {
     let file_name = safe_name(name);
     let target = out_dir.join(&file_name);
-    if let (Some(size), Ok(meta)) = (size, tokio::fs::metadata(&target).await) {
+    if let (Some(size), Ok(meta)) = (opts.size, tokio::fs::metadata(&target).await) {
         if meta.len() == size {
             return Ok(target);
         }
     }
-    let opts = SaveOptions { size, sha256: None, headers: HeaderMap::new(), reject_html };
     save_stream(client, url, &target, opts, &|done, total| progress(&file_name, done, total)).await?;
     Ok(target)
 }

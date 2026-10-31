@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use crate::error::DownloadError;
-use crate::http::{safe_name, save_stream, SaveOptions};
+use crate::http::{safe_name, SaveOptions};
 use crate::link::{Job, JobKind};
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
-use super::check_status;
+use super::{check_status, save_named};
 
 pub struct Pixeldrain {
     /// `https://pixeldrain.com/api` in production.
@@ -69,24 +69,18 @@ impl Site for Pixeldrain {
         let name = info["name"]
             .as_str()
             .ok_or_else(|| DownloadError::Fatal("pixeldrain info has no name".into()))?;
-        let file_name = safe_name(name);
-        let size = info["size"].as_u64();
-        let target = out_dir.join(&file_name);
-        if let (Some(size), Ok(meta)) = (size, tokio::fs::metadata(&target).await) {
-            if meta.len() == size {
-                return Ok(target);
-            }
-        }
         if let Some(availability) = info["availability"].as_str().filter(|a| !a.is_empty()) {
             // e.g. a captcha is required: the user has to download it in a browser.
             let reason = info["availability_message"].as_str().filter(|m| !m.is_empty()).unwrap_or(availability);
             return Err(DownloadError::RateLimited(format!("{reason} ({})", file_page(&item.id))));
         }
-        let sha256 = info["hash_sha256"].as_str().filter(|h| !h.is_empty());
+        let opts = SaveOptions {
+            size: info["size"].as_u64(),
+            sha256: info["hash_sha256"].as_str().filter(|h| !h.is_empty()),
+            ..Default::default()
+        };
         let url = format!("{}/file/{}?download", self.api, item.id);
-        let opts = SaveOptions { size, sha256, headers: Default::default(), reject_html: false };
-        save_stream(&ctx.http, &url, &target, opts, &|done, total| progress(&file_name, done, total)).await?;
-        Ok(target)
+        save_named(&ctx.http, &url, name, out_dir, progress, opts).await
     }
 }
 

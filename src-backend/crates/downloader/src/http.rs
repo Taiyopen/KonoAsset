@@ -88,9 +88,18 @@ pub fn filename_from_headers(headers: &HeaderMap) -> Option<String> {
     if name.is_empty() { None } else { Some(name) }
 }
 
+/// Whether `Content-Type` says the response is a web page.
+pub(crate) fn is_html(headers: &HeaderMap) -> bool {
+    headers
+        .get(CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.to_ascii_lowercase().contains("text/html"))
+}
+
 /// `(downloaded, total)`
 pub type ProgressFn<'a> = &'a (dyn Fn(u64, Option<u64>) + Send + Sync);
 
+#[derive(Default)]
 pub struct SaveOptions<'a> {
     pub size: Option<u64>,
     pub sha256: Option<&'a str>,
@@ -144,15 +153,8 @@ pub async fn save_stream(
     let status = response.status();
     let header_name = filename_from_headers(response.headers());
 
-    if opts.reject_html {
-        let is_html = response
-            .headers()
-            .get(CONTENT_TYPE)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| v.to_ascii_lowercase().contains("text/html"));
-        if status == StatusCode::FORBIDDEN || is_html {
-            return Err(DownloadError::NotAFile("rejected".into()));
-        }
+    if opts.reject_html && (status == StatusCode::FORBIDDEN || is_html(response.headers())) {
+        return Err(DownloadError::NotAFile("rejected".into()));
     }
 
     let mut size = opts.size;
@@ -246,10 +248,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
         let url = format!("{base}/nope?sig=secret");
-        let err = save_stream(&client(), &url, &target, opts(), &noop).await.unwrap_err();
+        let err = save_stream(&client(), &url, &target, SaveOptions::default(), &noop).await.unwrap_err();
         assert!(!err.to_string().contains("secret"), "{err}");
         // A connection error from reqwest names the url too.
-        let err = save_stream(&client(), "http://127.0.0.1:9/x?sig=secret", &target, opts(), &noop).await.unwrap_err();
+        let err = save_stream(&client(), "http://127.0.0.1:9/x?sig=secret", &target, SaveOptions::default(), &noop).await.unwrap_err();
         assert!(!err.to_string().contains("secret"), "{err}");
     }
 
@@ -276,10 +278,6 @@ mod tests {
         (0..10_000u32).map(|i| (i % 251) as u8).collect()
     }
 
-    fn opts<'a>() -> SaveOptions<'a> {
-        SaveOptions { size: None, sha256: None, headers: HeaderMap::new(), reject_html: false }
-    }
-
     fn noop(_: u64, _: Option<u64>) {}
 
     fn part_of(target: &std::path::Path) -> std::path::PathBuf {
@@ -299,7 +297,7 @@ mod tests {
         std::fs::write(part_of(&target), &b[..4]).unwrap();
         let calls = Mutex::new(Vec::new());
         let progress = |done: u64, total: Option<u64>| calls.lock().unwrap().push((done, total));
-        save_stream(&client(), &format!("{base}/f.bin"), &target, opts(), &progress).await.unwrap();
+        save_stream(&client(), &format!("{base}/f.bin"), &target, SaveOptions::default(), &progress).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
         assert!(!part_of(&target).exists());
         assert_eq!(*log.lock().unwrap(), vec![Some("bytes=4-".to_string())]);
@@ -316,7 +314,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
         std::fs::write(part_of(&target), b"junk").unwrap();
-        save_stream(&client(), &format!("{base}/f.bin"), &target, opts(), &noop).await.unwrap();
+        save_stream(&client(), &format!("{base}/f.bin"), &target, SaveOptions::default(), &noop).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
         assert!(!part_of(&target).exists());
     }
@@ -330,7 +328,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
         std::fs::write(part_of(&target), &b).unwrap();
-        let o = SaveOptions { size: Some(b.len() as u64), ..opts() };
+        let o = SaveOptions { size: Some(b.len() as u64), ..Default::default() };
         let calls = Mutex::new(Vec::new());
         let progress = |done: u64, total: Option<u64>| calls.lock().unwrap().push((done, total));
         save_stream(&client(), &format!("{base}/f.bin"), &target, o, &progress).await.unwrap();
@@ -351,12 +349,12 @@ mod tests {
         std::fs::write(part_of(&target), vec![7u8; b.len() + 50]).unwrap();
         let url = format!("{base}/f.bin");
         // 416 with Content-Range tells the real length, so the stale .part is detected
-        let err = save_stream(&client(), &url, &target, opts(), &noop).await.unwrap_err();
+        let err = save_stream(&client(), &url, &target, SaveOptions::default(), &noop).await.unwrap_err();
         assert!(matches!(err, DownloadError::Retryable(_)), "{err:?}");
         assert!(!part_of(&target).exists());
         assert!(!target.exists());
         // the retry starts clean
-        save_stream(&client(), &url, &target, opts(), &noop).await.unwrap();
+        save_stream(&client(), &url, &target, SaveOptions::default(), &noop).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
         assert!(!part_of(&target).exists());
     }
@@ -373,7 +371,7 @@ mod tests {
         let progress = |done: u64, total: Option<u64>| {
             *last.lock().unwrap() = Some((done, total));
         };
-        save_stream(&client(), &format!("{base}/f.bin"), &target, opts(), &progress).await.unwrap();
+        save_stream(&client(), &format!("{base}/f.bin"), &target, SaveOptions::default(), &progress).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
         assert_eq!(*last.lock().unwrap(), Some((b.len() as u64, None)));
     }
@@ -384,7 +382,7 @@ mod tests {
         let base = serve(vec![Route::ok("/f.bin", b.clone())]).await;
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
-        let o = SaveOptions { size: Some(b.len() as u64 + 1), ..opts() };
+        let o = SaveOptions { size: Some(b.len() as u64 + 1), ..Default::default() };
         let err = save_stream(&client(), &format!("{base}/f.bin"), &target, o, &noop).await.unwrap_err();
         assert!(matches!(err, DownloadError::Retryable(_)), "{err:?}");
         assert!(part_of(&target).exists());
@@ -398,7 +396,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
         let wrong = "00".repeat(32);
-        let o = SaveOptions { sha256: Some(&wrong), ..opts() };
+        let o = SaveOptions { sha256: Some(&wrong), ..Default::default() };
         let err = save_stream(&client(), &format!("{base}/f.bin"), &target, o, &noop).await.unwrap_err();
         assert!(matches!(err, DownloadError::Retryable(_)), "{err:?}");
         assert!(!part_of(&target).exists());
@@ -413,7 +411,7 @@ mod tests {
         let base = serve(vec![Route::ok("/f.bin", b.clone())]).await;
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
-        let o = SaveOptions { sha256: Some(&sha), ..opts() };
+        let o = SaveOptions { sha256: Some(&sha), ..Default::default() };
         save_stream(&client(), &format!("{base}/f.bin"), &target, o, &noop).await.unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b);
     }
@@ -425,7 +423,7 @@ mod tests {
         let base = serve(vec![route]).await;
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
-        let o = SaveOptions { reject_html: true, ..opts() };
+        let o = SaveOptions { reject_html: true, ..Default::default() };
         let err = save_stream(&client(), &format!("{base}/f.bin"), &target, o, &noop).await.unwrap_err();
         assert_eq!(err, DownloadError::NotAFile("rejected".into()));
         assert!(!target.exists());
@@ -437,7 +435,7 @@ mod tests {
         let base = serve(vec![]).await;
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("f.bin");
-        let err = save_stream(&client(), &format!("{base}/nope"), &target, opts(), &noop).await.unwrap_err();
+        let err = save_stream(&client(), &format!("{base}/nope"), &target, SaveOptions::default(), &noop).await.unwrap_err();
         assert!(matches!(err, DownloadError::NotFound(_)), "{err:?}");
         assert!(!part_of(&target).exists());
     }

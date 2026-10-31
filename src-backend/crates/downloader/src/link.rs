@@ -143,21 +143,19 @@ pub fn parse_text(text: &str) -> Vec<ParsedLine> {
 
 /// Returns all lines as `LinkLine`, or `Err` if any line is invalid or there are none.
 pub fn valid_lines(text: &str) -> Result<Vec<LinkLine>, String> {
-    let mut lines = Vec::new();
-    for (index, raw) in text.lines().enumerate() {
-        let line = normalize(raw);
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let line_number = index as u32 + 1;
-        let (site, job) =
-            parse_line(&line).ok_or_else(|| format!("Invalid link on line {line_number}"))?;
-        lines.push(LinkLine {
-            line_number,
-            site,
-            job,
-        });
-    }
+    let lines = parse_text(text)
+        .into_iter()
+        .map(|parsed| {
+            let line_number = parsed.line_number;
+            let (site, job) = parse_line(&parsed.text)
+                .ok_or_else(|| format!("Invalid link on line {line_number}"))?;
+            Ok(LinkLine {
+                line_number,
+                site,
+                job,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     if lines.is_empty() {
         return Err("No links found".to_string());
     }

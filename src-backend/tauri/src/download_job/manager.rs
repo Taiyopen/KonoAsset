@@ -109,16 +109,13 @@ impl DownloadJobManager {
         Ok(id)
     }
 
-    /// Newest first.
+    /// Newest first (jobs are kept in the order they were enqueued).
     pub fn list(&self) -> Vec<DownloadJob> {
-        let mut jobs: Vec<DownloadJob> = self
-            .jobs
+        self.jobs
             .iter()
             .rev()
             .map(|entry| lock(&entry.job).clone())
-            .collect();
-        jobs.sort_by_key(|job| std::cmp::Reverse(job.created_at));
-        jobs
+            .collect()
     }
 
     /// Only queued or downloading jobs can be cancelled: aborting an import half-way could
@@ -958,7 +955,6 @@ mod tests {
         let mut h = harness("list_order", backend);
 
         let first = h.manager.enqueue(request(PIXELDRAIN)).unwrap();
-        tokio::time::sleep(Duration::from_millis(5)).await;
         let second = h.manager.enqueue(request(PIXELDRAIN)).unwrap();
 
         let ids: Vec<Uuid> = h.manager.list().iter().map(|job| job.id).collect();

@@ -12,10 +12,9 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use regex::Regex;
-use reqwest::header::CONTENT_TYPE;
 
 use crate::error::DownloadError;
-use crate::http::{filename_from_headers, redact_url, safe_name};
+use crate::http::{filename_from_headers, is_html, redact_url, safe_name, SaveOptions};
 use crate::link::{Job, JobKind};
 use crate::site::{Ctx, FileItem, FileProgress, Site};
 
@@ -188,13 +187,8 @@ enum Fetched {
 async fn fetch(client: &reqwest::Client, url: &str) -> Result<Fetched, DownloadError> {
     let response = send(client, url).await?;
     let name = filename_from_headers(response.headers());
-    let is_html = response
-        .headers()
-        .get(CONTENT_TYPE)
-        .and_then(|v| v.to_str().ok())
-        .is_some_and(|v| v.to_ascii_lowercase().contains("text/html"));
     // An html file that is really downloaded comes with a file name; a page does not.
-    if is_html && name.is_none() {
+    if is_html(response.headers()) && name.is_none() {
         return Ok(Fetched::Page(response.text().await?));
     }
     Ok(Fetched::File { url: response.url().to_string(), name, size: response.content_length() })
@@ -304,7 +298,8 @@ impl Site for GoogleDrive {
         let name = header_name.or_else(|| item.name.clone()).unwrap_or_else(|| item.id.clone());
         // Without a file name in the headers the answer could be a page again (a used-up
         // confirmation link, the quota page); never save that as the file.
-        save_named(&ctx.http, &url, &name, size, out_dir, progress, header_name_missing).await
+        let opts = SaveOptions { size, reject_html: header_name_missing, ..Default::default() };
+        save_named(&ctx.http, &url, &name, out_dir, progress, opts).await
     }
 
     fn delay(&self) -> Duration {
