@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, specta::Type, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, specta::Type, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SiteKind {
     Workupload,
     Pixeldrain,
