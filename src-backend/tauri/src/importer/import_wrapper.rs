@@ -118,14 +118,14 @@ where
 pub async fn import_avatar(
     basic_store: &AssetStorage,
     request: AssetImportRequest<PreAvatar>,
-    app_handle: &AppHandle,
+    app_handle: Option<&AppHandle>,
     zip_extraction: bool,
     use_trash_bin: bool,
 ) -> Result<Avatar, String> {
     import_asset(
         basic_store,
         request,
-        Some(app_handle),
+        app_handle,
         |provider: &'_ AssetStorage, asset: Avatar| {
             Box::pin(async { provider.get_avatar_store().add_asset_and_save(asset).await })
         },
@@ -138,7 +138,7 @@ pub async fn import_avatar(
 pub async fn import_avatar_wearable<T>(
     basic_store: &AssetStorage,
     request: AssetImportRequest<T>,
-    app_handle: &AppHandle,
+    app_handle: Option<&AppHandle>,
     zip_extraction: bool,
     use_trash_bin: bool,
 ) -> Result<AvatarWearable, String>
@@ -148,7 +148,7 @@ where
     import_asset(
         basic_store,
         request,
-        Some(app_handle),
+        app_handle,
         |provider: &'_ AssetStorage, asset: AvatarWearable| {
             Box::pin(async {
                 provider
@@ -166,7 +166,7 @@ where
 pub async fn import_world_object<T>(
     basic_store: &AssetStorage,
     request: AssetImportRequest<T>,
-    app_handle: &AppHandle,
+    app_handle: Option<&AppHandle>,
     zip_extraction: bool,
     use_trash_bin: bool,
 ) -> Result<WorldObject, String>
@@ -176,7 +176,7 @@ where
     import_asset(
         basic_store,
         request,
-        Some(app_handle),
+        app_handle,
         |provider: &'_ AssetStorage, asset: WorldObject| {
             Box::pin(async {
                 provider
@@ -194,7 +194,7 @@ where
 pub async fn import_other_asset<T>(
     basic_store: &AssetStorage,
     request: AssetImportRequest<T>,
-    app_handle: &AppHandle,
+    app_handle: Option<&AppHandle>,
     zip_extraction: bool,
     use_trash_bin: bool,
 ) -> Result<OtherAsset, String>
@@ -204,7 +204,7 @@ where
     import_asset(
         basic_store,
         request,
-        Some(app_handle),
+        app_handle,
         |provider: &'_ AssetStorage, asset: OtherAsset| {
             Box::pin(async {
                 provider

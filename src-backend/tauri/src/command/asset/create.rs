@@ -40,7 +40,7 @@ pub async fn request_avatar_import(
         let result = import_avatar(
             &basic_store,
             request,
-            &cloned_app_handle,
+            Some(&cloned_app_handle),
             zip_extraction,
             use_trash_bin,
         )
@@ -87,7 +87,7 @@ pub async fn request_avatar_wearable_import(
         let result = import_avatar_wearable(
             &basic_store,
             request,
-            &cloned_app_handle,
+            Some(&cloned_app_handle),
             zip_extraction,
             use_trash_bin,
         )
@@ -133,7 +133,7 @@ pub async fn request_world_object_import(
         let result = import_world_object(
             &basic_store,
             request,
-            &cloned_app_handle,
+            Some(&cloned_app_handle),
             zip_extraction,
             use_trash_bin,
         )
@@ -176,7 +176,7 @@ pub async fn request_other_asset_import(
         let result = import_other_asset(
             &basic_store,
             request,
-            &cloned_app_handle,
+            Some(&cloned_app_handle),
             zip_extraction,
             use_trash_bin,
         )
