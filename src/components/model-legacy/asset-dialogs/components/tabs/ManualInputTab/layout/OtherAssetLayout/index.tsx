@@ -1,3 +1,5 @@
+import { AiNewValues } from '@/components/model-legacy/asset-dialogs/AddAssetDialog/ai-suggest/logic'
+import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useState } from 'react'
 import { useEffect } from 'react'
@@ -14,9 +16,10 @@ import { useLocalization } from '@/hooks/use-localization'
 
 type Props = {
   form: AssetFormType
+  aiNewValues?: AiNewValues
 }
 
-export const OtherAssetLayout = ({ form }: Props) => {
+export const OtherAssetLayout = ({ form, aiNewValues }: Props) => {
   const { t } = useLocalization()
   const [categoryCandidates, setCategoryCandidates] = useState<
     TextInputSelectOption[]
@@ -68,7 +71,15 @@ export const OtherAssetLayout = ({ form }: Props) => {
   return (
     <div className="w-full flex flex-row space-x-2 mb-4">
       <div className="w-1/2 space-y-2">
-        <Label> {t('general:category')} </Label>
+        <div className="flex items-center gap-2">
+          <Label> {t('general:category')} </Label>
+          {aiNewValues?.category &&
+            aiNewValues.category === form.watch('category') && (
+              <Badge className="bg-amber-500 text-white">
+                {t('addasset:ai-suggest:new')}
+              </Badge>
+            )}
+        </div>
         <TextInputSelect
           options={categoryCandidates}
           placeholder={t('addasset:category:placeholder')}
@@ -102,6 +113,8 @@ export const OtherAssetLayout = ({ form }: Props) => {
               {t('addasset:empty-indicator')}
             </p>
           }
+          highlightedValues={aiNewValues?.tags}
+          highlightLabel={t('addasset:ai-suggest:new')}
           value={form.watch('tags')}
           onChange={(value) => form.setValue('tags', value)}
         />

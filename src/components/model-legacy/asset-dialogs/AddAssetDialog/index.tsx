@@ -52,6 +52,7 @@ export const AddAssetDialog = ({ dialogOpen, setDialogOpen }: Props) => {
     validatePaths,
     submit,
     submitting,
+    aiSuggest,
   } = useAddAssetDialog({ dialogOpen, setDialogOpen })
 
   return (
@@ -99,6 +100,7 @@ export const AddAssetDialog = ({ dialogOpen, setDialogOpen }: Props) => {
             onGoToNextTabClicked={() => setTab('additional-input')}
             tabIndex={4}
             totalTabs={5}
+            aiSuggest={aiSuggest}
           />
         </TabsContent>
         <TabsContent value="additional-input">

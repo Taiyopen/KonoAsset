@@ -119,6 +119,8 @@
     "addasset:ai-suggest:error:rate-limited": "リクエストが多すぎます。しばらくしてから再試行してください",
     "addasset:ai-suggest:error:overloaded": "Claudeが混雑しています。しばらくしてから再試行してください",
     "addasset:ai-suggest:error:failed": "AIによる判定に失敗しました。手動で入力してください",
+    "addasset:ai-suggest:loading": "AIが判定中…",
+    "addasset:ai-suggest:new": "新規",
 
     "assetcard:open-button:show-dependency-warning-toast": "前提アセットがあります！",
     "assetcard:open-button:show-dependency-warning-toast:description": "開くボタンの下矢印から前提アセットを確認できます",

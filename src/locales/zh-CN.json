@@ -119,6 +119,8 @@
     "addasset:ai-suggest:error:rate-limited": "请求太频繁，请稍后再试",
     "addasset:ai-suggest:error:overloaded": "Claude 服务繁忙，请稍后再试",
     "addasset:ai-suggest:error:failed": "AI 判断失败，请手动填写",
+    "addasset:ai-suggest:loading": "AI 判断中…",
+    "addasset:ai-suggest:new": "新增",
 
     "assetcard:open-button:show-dependency-warning-toast": "存在前置资产！",
     "assetcard:open-button:show-dependency-warning-toast:description": "可通过打开按钮的下拉箭头查看前置资产",

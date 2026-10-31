@@ -119,6 +119,8 @@
     "addasset:ai-suggest:error:rate-limited": "請求太頻繁，請稍後再試",
     "addasset:ai-suggest:error:overloaded": "Claude 服務忙碌中，請稍後再試",
     "addasset:ai-suggest:error:failed": "AI 判斷失敗，請手動填寫",
+    "addasset:ai-suggest:loading": "AI 判斷中…",
+    "addasset:ai-suggest:new": "新增",
 
     "assetcard:open-button:show-dependency-warning-toast": "此素材有前置素材！",
     "assetcard:open-button:show-dependency-warning-toast:description": "可從「開啟」按鈕的下拉箭頭查看前置素材",

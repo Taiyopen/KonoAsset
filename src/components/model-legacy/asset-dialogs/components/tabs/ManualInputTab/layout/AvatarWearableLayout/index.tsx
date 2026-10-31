@@ -1,3 +1,5 @@
+import { AiNewValues } from '@/components/model-legacy/asset-dialogs/AddAssetDialog/ai-suggest/logic'
+import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 
 import { Separator } from '@/components/ui/separator'
@@ -14,9 +16,10 @@ import MultipleSelector, {
 
 type Props = {
   form: AssetFormType
+  aiNewValues?: AiNewValues
 }
 
-export const AvatarWearableLayout = ({ form }: Props) => {
+export const AvatarWearableLayout = ({ form, aiNewValues }: Props) => {
   const { t } = useLocalization()
   const [categoryCandidates, setCategoryCandidates] = useState<
     TextInputSelectOption[]
@@ -102,7 +105,9 @@ export const AvatarWearableLayout = ({ form }: Props) => {
                 {t('addasset:empty-indicator')}
               </p>
             }
-            value={form.getValues('supportedAvatars')}
+            highlightedValues={aiNewValues?.supportedAvatars}
+            highlightLabel={t('addasset:ai-suggest:new')}
+            value={form.watch('supportedAvatars')}
             onChange={(value) => {
               form.setValue('supportedAvatars', value)
             }}
@@ -113,7 +118,15 @@ export const AvatarWearableLayout = ({ form }: Props) => {
         </div>
         <Separator orientation="vertical" className="h-32 my-auto" />
         <div className="w-1/2 space-y-2">
-          <Label> {t('general:category')} </Label>
+          <div className="flex items-center gap-2">
+            <Label> {t('general:category')} </Label>
+            {aiNewValues?.category &&
+              aiNewValues.category === form.watch('category') && (
+                <Badge className="bg-amber-500 text-white">
+                  {t('addasset:ai-suggest:new')}
+                </Badge>
+              )}
+          </div>
           <TextInputSelect
             options={categoryCandidates}
             placeholder={t('addasset:category:placeholder')}
@@ -147,7 +160,9 @@ export const AvatarWearableLayout = ({ form }: Props) => {
               {t('addasset:empty-indicator')}
             </p>
           }
-          value={form.getValues('tags')}
+          highlightedValues={aiNewValues?.tags}
+          highlightLabel={t('addasset:ai-suggest:new')}
+          value={form.watch('tags')}
           onChange={(value) => {
             form.setValue('tags', value)
           }}

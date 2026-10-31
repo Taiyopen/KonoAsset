@@ -1,3 +1,4 @@
+import { AiNewValues } from '@/components/model-legacy/asset-dialogs/AddAssetDialog/ai-suggest/logic'
 import { Label } from '@/components/ui/label'
 import MultipleSelector, { Option } from '@/components/ui/multi-select'
 import { commands } from '@/lib/bindings'
@@ -8,9 +9,10 @@ import { useEffect, useState } from 'react'
 
 type Props = {
   form: AssetFormType
+  aiNewValues?: AiNewValues
 }
 
-export const AvatarLayout = ({ form }: Props) => {
+export const AvatarLayout = ({ form, aiNewValues }: Props) => {
   const { t } = useLocalization()
   const [tagCandidates, setTagCandidates] = useState<Option[]>([])
 
@@ -55,7 +57,9 @@ export const AvatarLayout = ({ form }: Props) => {
               {t('addasset:empty-indicator')}
             </p>
           }
-          value={form.getValues('tags')}
+          highlightedValues={aiNewValues?.tags}
+          highlightLabel={t('addasset:ai-suggest:new')}
+          value={form.watch('tags')}
           onChange={(value) => form.setValue('tags', value)}
         />
         <p className="text-muted-foreground text-sm">

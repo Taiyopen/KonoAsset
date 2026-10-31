@@ -119,6 +119,8 @@
     "addasset:ai-suggest:error:rate-limited": "Too many requests. Please try again later",
     "addasset:ai-suggest:error:overloaded": "Claude is busy right now. Please try again later",
     "addasset:ai-suggest:error:failed": "AI suggestion failed. Please fill in the fields manually",
+    "addasset:ai-suggest:loading": "AI is suggesting…",
+    "addasset:ai-suggest:new": "New",
 
     "assetcard:open-button:show-dependency-warning-toast": "There are prerequisite assets!",
     "assetcard:open-button:show-dependency-warning-toast:description": "You can check prerequisite assets from the downward arrow on the Open button.",

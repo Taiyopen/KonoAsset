@@ -84,6 +84,10 @@ interface MultipleSelectorProps {
   hideClearAllButton?: boolean
   /** Allow negative selection (NOT designation) with leading hyphen. */
   negativeSelectable?: boolean
+  /** Selected values that should be visually highlighted. */
+  highlightedValues?: string[]
+  /** Small text shown after the name of a highlighted selected value. */
+  highlightLabel?: string
 }
 
 export interface MultipleSelectorRef {
@@ -179,6 +183,8 @@ const MultipleSelector = ({
   inputProps,
   hideClearAllButton = false,
   negativeSelectable = false,
+  highlightedValues,
+  highlightLabel,
 }: MultipleSelectorProps & {
   ref?: React.RefObject<MultipleSelectorRef>
 }) => {
@@ -590,6 +596,7 @@ const MultipleSelector = ({
               {selected.map((option, index) => {
                 const isNot = option.startsWith('-')
                 const displayValue = isNot ? option.slice(1) : option
+                const isHighlighted = highlightedValues?.includes(option)
                 const BadgeContent = (
                   <Badge
                     key={option}
@@ -599,14 +606,21 @@ const MultipleSelector = ({
                       {
                         'mr-6': lastBadgeInFirstRow === index,
                         'bg-destructive': isNot && negativeSelectable,
+                        'bg-amber-500 text-white': isHighlighted,
                       },
                       badgeClassName,
                     )}
                     data-badge={true}
                     data-disabled={disabled || undefined}
+                    data-highlighted={isHighlighted || undefined}
                   >
                     {isNot && negativeSelectable && <Ban className="h-3 w-3" />}
                     <span className="truncate">{displayValue}</span>
+                    {isHighlighted && highlightLabel && (
+                      <span className="text-[10px] leading-none">
+                        {highlightLabel}
+                      </span>
+                    )}
                     <button
                       className={cn(
                         'ml-1 rounded-full outline-hidden ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2',

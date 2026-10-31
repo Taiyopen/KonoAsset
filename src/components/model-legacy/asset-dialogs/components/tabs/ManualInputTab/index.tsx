@@ -15,6 +15,8 @@ import { WorldObjectLayout } from './layout/WorldObjectLayout'
 import { useLocalization } from '@/hooks/use-localization'
 import { OtherAssetLayout } from './layout/OtherAssetLayout'
 import TextInputSelect from '@/components/ui/text-input-select'
+import { Loader2 } from 'lucide-react'
+import { AiSuggestViewState } from '@/components/model-legacy/asset-dialogs/AddAssetDialog/ai-suggest/logic'
 import { SquareImage } from '@/components/models/square-image/SquareImage'
 
 type Props = {
@@ -25,6 +27,8 @@ type Props = {
 
   tabIndex: number
   totalTabs: number
+
+  aiSuggest?: AiSuggestViewState
 }
 
 export const ManualInputTab = ({
@@ -35,6 +39,7 @@ export const ManualInputTab = ({
 
   tabIndex,
   totalTabs,
+  aiSuggest,
 }: Props) => {
   const { t } = useLocalization()
   const { assetType, imageFilename, creatorCandidates } =
@@ -92,10 +97,28 @@ export const ManualInputTab = ({
           </div>
         </div>
 
-        {assetType === 'Avatar' && <AvatarLayout form={form} />}
-        {assetType === 'AvatarWearable' && <AvatarWearableLayout form={form} />}
-        {assetType === 'WorldObject' && <WorldObjectLayout form={form} />}
-        {assetType === 'OtherAsset' && <OtherAssetLayout form={form} />}
+        {aiSuggest?.loading && (
+          <p className="text-sm text-muted-foreground flex items-center gap-2 mb-4">
+            <Loader2 className="size-4 animate-spin" />
+            {t('addasset:ai-suggest:loading')}
+          </p>
+        )}
+
+        {assetType === 'Avatar' && (
+          <AvatarLayout form={form} aiNewValues={aiSuggest?.newValues} />
+        )}
+        {assetType === 'AvatarWearable' && (
+          <AvatarWearableLayout
+            form={form}
+            aiNewValues={aiSuggest?.newValues}
+          />
+        )}
+        {assetType === 'WorldObject' && (
+          <WorldObjectLayout form={form} aiNewValues={aiSuggest?.newValues} />
+        )}
+        {assetType === 'OtherAsset' && (
+          <OtherAssetLayout form={form} aiNewValues={aiSuggest?.newValues} />
+        )}
 
         <div className="w-full flex justify-between">
           <Button variant="outline" onClick={onBackToPreviousTabClicked}>
