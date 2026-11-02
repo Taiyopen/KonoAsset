@@ -590,7 +590,7 @@ export type AddAssetDeepLink = { path: string[]; boothItemId: number | null }
 export type AiSuggestErrorKind = "NotConfigured" | "InvalidApiKey" | "InsufficientCredit" | "RateLimited" | "Overloaded" | "Timeout" | "Network" | "Refused" | "Truncated" | "InvalidResponse"
 export type AiSuggestion = { category: SuggestedValue | null; supportedAvatars: SuggestedValue[]; tags: SuggestedValue[] }
 export type AppState = { sort?: SortState; displayStyle: DisplayStyle }
-export type AssetDescription = { name: string; creator: string; imageFilename: string | null; tags: string[]; memo: string | null; boothItemId: number | null; gumroadUrl: string | null; dependencies: string[]; createdAt: number; publishedAt: number | null }
+export type AssetDescription = { name: string; creator: string; imageFilename: string | null; tags: string[]; memo: string | null; boothItemId: number | null; gumroadUrl?: string | null; dependencies: string[]; createdAt: number; publishedAt: number | null }
 export type AssetImportRequest<T> = { preAsset: T; absolutePaths: string[]; deleteSource: boolean }
 export type AssetRegistrationStatistics = { date: string; avatars: number; avatarWearables: number; worldObjects: number; otherAssets: number }
 export type AssetSummary = { id: string; assetType: AssetType; name: string; creator: string; imageFilename: string | null; hasMemo: boolean; dependencies: string[]; boothItemId: number | null; gumroadUrl: string | null; publishedAt: number | null }
@@ -640,7 +640,11 @@ export type FilterElement<T> = { type: "AND"; data: T[] } | { type: "OR"; data: 
 export type FilterRequest = { assetType: AssetType | null; queryText: string | null; categories: FilterElement<FilterRequirement<string>> | null; tags: FilterElement<FilterRequirement<string>> | null; supportedAvatars: FilterElement<FilterRequirement<string>> | null }
 export type FilterRequirement<T> = { type: "Include"; data: T } | { type: "Exclude"; data: T }
 export type GetAssetResult = { assetType: AssetType; avatar: Avatar | null; avatarWearable: AvatarWearable | null; worldObject: WorldObject | null; otherAsset: OtherAsset | null }
-export type GumroadAssetInfo = { url: string; name: string; creator: string; imageUrls: string[]; publishedAt: number }
+export type GumroadAssetInfo = { 
+/**
+ * Gumroad が返す正式な商品 URL（素材に保存する値）
+ */
+url: string; name: string; creator: string; imageUrls: string[]; publishedAt: number }
 export type ImageOptimizationResult = { resized: number; deleted: number }
 export type JobKind = "File" | "Folder"
 export type LanguageCode = "ja-JP" | "en-US" | "en-GB" | "zh-CN" | "zh-TW" | { "user-provided": string }

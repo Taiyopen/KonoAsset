@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.2.8",
+    "features": [
+      {
+        "text": "Gumroad product links can now be used to fill in asset info automatically, and are saved with the asset",
+        "langs": [
+          {
+            "lang": ["ja-JP"],
+            "text": "Gumroadの商品リンクからアセット情報を自動入力できるように（リンクはアセットに保存されます）"
+          },
+          {
+            "lang": ["zh-TW"],
+            "text": "現在可貼上 Gumroad 商品連結自動填入素材資訊，連結也會存進素材"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.2.7",
     "features": [
       {
