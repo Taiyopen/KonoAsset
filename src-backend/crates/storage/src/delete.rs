@@ -291,6 +291,7 @@ mod tests {
                 tags: vec!["test".into()],
                 memo: Some("Test memo".into()),
                 booth_item_id: None,
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1234567890000,
                 published_at: None,

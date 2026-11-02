@@ -52,6 +52,8 @@ pub struct AssetDescription {
     pub tags: Vec<String>,
     pub memo: Option<String>,
     pub booth_item_id: Option<u64>,
+    #[serde(default)]
+    pub gumroad_url: Option<String>,
     pub dependencies: Vec<Uuid>,
     pub created_at: i64,
     pub published_at: Option<i64>,
@@ -140,5 +142,52 @@ impl OtherAsset {
             description,
             category,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_description_without_gumroad_url_deserializes() {
+        let json = r#"{
+            "name": "name",
+            "creator": "creator",
+            "imageFilename": null,
+            "tags": [],
+            "memo": null,
+            "boothItemId": 1,
+            "dependencies": [],
+            "createdAt": 0,
+            "publishedAt": null
+        }"#;
+
+        let description: AssetDescription = serde_json::from_str(json).unwrap();
+
+        assert_eq!(description.gumroad_url, None);
+        assert_eq!(description.booth_item_id, Some(1));
+    }
+
+    #[test]
+    fn test_description_with_gumroad_url_roundtrips() {
+        let description = AssetDescription {
+            name: "name".to_string(),
+            creator: "creator".to_string(),
+            image_filename: None,
+            tags: vec![],
+            memo: None,
+            booth_item_id: None,
+            gumroad_url: Some("https://bananabread.gumroad.com/l/ajfrt".to_string()),
+            dependencies: vec![],
+            created_at: 0,
+            published_at: None,
+        };
+
+        let json = serde_json::to_string(&description).unwrap();
+        assert!(json.contains(r#""gumroadUrl":"https://bananabread.gumroad.com/l/ajfrt""#));
+
+        let restored: AssetDescription = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored, description);
     }
 }

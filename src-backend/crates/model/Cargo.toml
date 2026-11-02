@@ -15,3 +15,5 @@ specta.workspace = true
 uuid.workspace = true
 
 sys-locale = "0.3.2"
+[dev-dependencies]
+serde_json.workspace = true

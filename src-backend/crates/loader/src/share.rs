@@ -30,6 +30,7 @@ impl TryInto<AssetDescription> for LegacyAssetDescriptionV2 {
             tags: self.tags,
             memo: self.memo,
             booth_item_id: self.booth_item_id,
+            gumroad_url: None,
             dependencies: vec![],
             created_at: self.created_at,
             published_at: self.published_at,

@@ -310,6 +310,7 @@ mod tests {
             tags: vec!["Test Tag".to_string()],
             memo: Some("Test Memo".to_string()),
             booth_item_id: Some(123456),
+            gumroad_url: None,
             dependencies: vec![],
             created_at: 123456,
             published_at: Some(123456),

@@ -42,6 +42,7 @@ const updateAvatar = async ({
   const creator = form.getValues('creator')
   const imageFilename = form.getValues('imageFilename')
   const boothItemId = form.getValues('boothItemId')
+  const gumroadUrl = form.getValues('gumroadUrl')
   const tags = form.getValues('tags')
   const memo = form.getValues('memo')
   const dependencies = form.getValues('dependencies')
@@ -54,6 +55,7 @@ const updateAvatar = async ({
       creator,
       imageFilename,
       boothItemId,
+      gumroadUrl,
       tags,
       memo,
       dependencies,
@@ -73,6 +75,7 @@ const updateAvatarWearable = async ({
   const creator = form.getValues('creator')
   const imageFilename = form.getValues('imageFilename')
   const boothItemId = form.getValues('boothItemId')
+  const gumroadUrl = form.getValues('gumroadUrl')
   const tags = form.getValues('tags')
   const memo = form.getValues('memo')
   const dependencies = form.getValues('dependencies')
@@ -87,6 +90,7 @@ const updateAvatarWearable = async ({
       creator,
       imageFilename,
       boothItemId,
+      gumroadUrl,
       tags,
       memo,
       dependencies,
@@ -108,6 +112,7 @@ const updateWorldObject = async ({
   const creator = form.getValues('creator')
   const imageFilename = form.getValues('imageFilename')
   const boothItemId = form.getValues('boothItemId')
+  const gumroadUrl = form.getValues('gumroadUrl')
   const tags = form.getValues('tags')
   const memo = form.getValues('memo')
   const dependencies = form.getValues('dependencies')
@@ -121,6 +126,7 @@ const updateWorldObject = async ({
       creator,
       imageFilename,
       boothItemId,
+      gumroadUrl,
       tags,
       memo,
       dependencies,
@@ -141,6 +147,7 @@ const updateOtherAsset = async ({
   const creator = form.getValues('creator')
   const imageFilename = form.getValues('imageFilename')
   const boothItemId = form.getValues('boothItemId')
+  const gumroadUrl = form.getValues('gumroadUrl')
   const tags = form.getValues('tags')
   const memo = form.getValues('memo')
   const dependencies = form.getValues('dependencies')
@@ -154,6 +161,7 @@ const updateOtherAsset = async ({
       creator,
       imageFilename,
       boothItemId,
+      gumroadUrl,
       tags,
       memo,
       dependencies,

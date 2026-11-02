@@ -503,6 +503,7 @@ mod tests {
                     tags: vec![],
                     memo: None,
                     booth_item_id: None,
+                    gumroad_url: None,
                     dependencies: vec![],
                     created_at: 0,
                     published_at: None,

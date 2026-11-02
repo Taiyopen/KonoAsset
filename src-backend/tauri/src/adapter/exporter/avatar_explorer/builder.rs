@@ -271,6 +271,7 @@ mod tests {
                 tags: vec!["tag1".to_string(), "tag2".to_string()],
                 memo: Some("Test Memo".to_string()),
                 booth_item_id: Some(12345),
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000, // 2025-01-01 00:00:00
                 published_at: Some(1735689600000),
@@ -300,6 +301,7 @@ mod tests {
                 tags: vec!["tag1".to_string(), "tag2".to_string()],
                 memo: Some("Test Memo".to_string()),
                 booth_item_id: Some(12345),
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000, // 2025-01-01 00:00:00
                 published_at: Some(1735689600000),
@@ -328,6 +330,7 @@ mod tests {
                 tags: vec![],
                 memo: None,
                 booth_item_id: None,
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000,
                 published_at: None,
@@ -351,6 +354,7 @@ mod tests {
                 tags: vec!["tag1".to_string(), "tag2".to_string()],
                 memo: Some("Test Memo".to_string()),
                 booth_item_id: Some(12345),
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000, // 2025-01-01 00:00:00
                 published_at: Some(1735689600000),
@@ -378,6 +382,7 @@ mod tests {
                 tags: vec![],
                 memo: None,
                 booth_item_id: None,
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000,
                 published_at: None,
@@ -400,6 +405,7 @@ mod tests {
                 tags: vec!["tag1".to_string(), "tag2".to_string()],
                 memo: Some("Test Memo".to_string()),
                 booth_item_id: Some(12345),
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000, // 2025-01-01 00:00:00
                 published_at: Some(1735689600000),
@@ -427,6 +433,7 @@ mod tests {
                 tags: vec![],
                 memo: None,
                 booth_item_id: None,
+                gumroad_url: None,
                 dependencies: vec![],
                 created_at: 1735689600000,
                 published_at: None,

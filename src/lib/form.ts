@@ -7,6 +7,7 @@ export type AssetFormFields = {
   creator: string
   imageFilename: string | null
   boothItemId: number | null
+  gumroadUrl: string | null
   tags: string[]
   memo: string | null
   dependencies: string[]

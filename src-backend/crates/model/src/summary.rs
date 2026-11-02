@@ -14,6 +14,7 @@ pub struct AssetSummary {
     pub has_memo: bool,
     pub dependencies: Vec<Uuid>,
     pub booth_item_id: Option<u64>,
+    pub gumroad_url: Option<String>,
     pub published_at: Option<i64>,
 }
 
@@ -28,6 +29,7 @@ impl From<Avatar> for AssetSummary {
             has_memo: asset.description.memo.is_some(),
             dependencies: asset.description.dependencies,
             booth_item_id: asset.description.booth_item_id,
+            gumroad_url: asset.description.gumroad_url,
             published_at: asset.description.published_at,
         }
     }
@@ -44,6 +46,7 @@ impl From<AvatarWearable> for AssetSummary {
             has_memo: asset.description.memo.is_some(),
             dependencies: asset.description.dependencies,
             booth_item_id: asset.description.booth_item_id,
+            gumroad_url: asset.description.gumroad_url,
             published_at: asset.description.published_at,
         }
     }
@@ -60,6 +63,7 @@ impl From<WorldObject> for AssetSummary {
             has_memo: asset.description.memo.is_some(),
             dependencies: asset.description.dependencies,
             booth_item_id: asset.description.booth_item_id,
+            gumroad_url: asset.description.gumroad_url,
             published_at: asset.description.published_at,
         }
     }
@@ -76,6 +80,7 @@ impl From<OtherAsset> for AssetSummary {
             has_memo: asset.description.memo.is_some(),
             dependencies: asset.description.dependencies,
             booth_item_id: asset.description.booth_item_id,
+            gumroad_url: asset.description.gumroad_url,
             published_at: asset.description.published_at,
         }
     }

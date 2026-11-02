@@ -18,6 +18,7 @@ const setDescriptionToForm = (
   form.setValue('creator', description.creator)
   form.setValue('imageFilename', description.imageFilename)
   form.setValue('boothItemId', description.boothItemId)
+  form.setValue('gumroadUrl', description.gumroadUrl ?? null)
   form.setValue('tags', description.tags)
   form.setValue('memo', description.memo)
   form.setValue('dependencies', description.dependencies)
@@ -77,6 +78,7 @@ export const useEditAssetDialog = ({
     creator: z.string().min(1),
     imageFilename: z.string().nullable(),
     boothItemId: z.number().nullable(),
+    gumroadUrl: z.string().nullable(),
     tags: z.array(z.string()),
     memo: z.string().nullable(),
     dependencies: z.array(z.string()),
@@ -93,6 +95,7 @@ export const useEditAssetDialog = ({
       creator: '',
       imageFilename: null,
       boothItemId: null,
+      gumroadUrl: null,
       tags: [],
       memo: null,
       dependencies: [],
@@ -109,6 +112,7 @@ export const useEditAssetDialog = ({
       creator: '',
       imageFilename: null,
       boothItemId: null,
+      gumroadUrl: null,
       tags: [],
       category: '',
       supportedAvatars: [],

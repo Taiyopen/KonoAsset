@@ -11,6 +11,7 @@ const mockAssetSummary: AssetSummary = {
   hasMemo: false,
   dependencies: [],
   boothItemId: 123,
+  gumroadUrl: null,
   imageFilename: 'imageFilename',
   publishedAt: 123,
 }

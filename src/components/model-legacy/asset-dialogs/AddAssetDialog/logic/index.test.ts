@@ -18,6 +18,7 @@ const description: AssetDescription = {
   memo: null,
   dependencies: [],
   boothItemId: null,
+  gumroadUrl: null,
   createdAt: 1,
   publishedAt: null,
 }

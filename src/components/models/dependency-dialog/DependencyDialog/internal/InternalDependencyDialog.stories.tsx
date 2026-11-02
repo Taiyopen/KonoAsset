@@ -13,6 +13,7 @@ const EXAMPLE_DEPENDENCIES: AssetSummary = {
   imageFilename: null,
   hasMemo: false,
   boothItemId: 6641548,
+  gumroadUrl: null,
   dependencies: [],
   publishedAt: 0,
 }
