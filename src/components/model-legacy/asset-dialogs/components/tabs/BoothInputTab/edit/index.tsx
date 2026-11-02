@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label'
 import { ChevronRight, Loader2 } from 'lucide-react'
 import { AssetFormType } from '@/lib/form'
 import { useBoothInputTabForEditDialog } from './hook'
-import { isBoothURL } from '@/lib/utils'
 import { useLocalization } from '@/hooks/use-localization'
 
 type Props = {
@@ -37,6 +36,7 @@ export const BoothInputTabForEditDialog = ({
     onUrlInputChange,
     fetching,
     boothUrlInput,
+    canFetch,
   } = useBoothInputTabForEditDialog({
     form,
     goToNextTab,
@@ -60,13 +60,13 @@ export const BoothInputTabForEditDialog = ({
           </Label>
           <div className="flex flex-row items-center mt-1 space-x-2">
             <Input
-              placeholder="https://booth.pm/ja/items/6641548"
+              placeholder="https://booth.pm/ja/items/6641548 / https://xxx.gumroad.com/l/xxxx"
               value={boothUrlInput}
               onChange={onUrlInputChange}
               disabled={fetching}
             />
             <Button
-              disabled={fetching || !isBoothURL(boothUrlInput)}
+              disabled={fetching || !canFetch}
               onClick={() => getAssetDescriptionFromBooth()}
               className="h-10 gap-1"
             >

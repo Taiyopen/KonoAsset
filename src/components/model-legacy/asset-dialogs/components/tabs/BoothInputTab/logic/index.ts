@@ -7,6 +7,12 @@ type Props = {
   setImageUrls: (imageUrls: string[]) => void
 }
 
+type GumroadProps = {
+  gumroadUrl: string
+  form: AssetFormType
+  setImageUrls: (imageUrls: string[]) => void
+}
+
 type ReturnProps =
   | {
       goNext: true
@@ -37,39 +43,75 @@ export const getAndSetAssetInfoFromBoothToForm = async ({
   form.setValue('boothItemId', boothItemId)
   form.setValue('assetType', data.estimatedAssetType ?? 'Avatar')
 
-  setImageUrls(data.imageUrls)
-  if (data.imageUrls.length > 0) {
+  await setImages(form, setImageUrls, data.imageUrls)
+
+  return toDuplicationResult(
+    await commands.getAssetDisplaysByBoothId(boothItemId),
+  )
+}
+
+// Gumroad にはカテゴリがないため、assetType と boothItemId は変更しない
+export const getAndSetAssetInfoFromGumroadToForm = async ({
+  gumroadUrl,
+  form,
+  setImageUrls,
+}: GumroadProps): Promise<Result<ReturnProps, string>> => {
+  const result = await commands.getAssetInfoFromGumroad(gumroadUrl)
+
+  if (result.status === 'error') {
+    return result
+  }
+
+  const data = result.data
+
+  form.setValue('name', data.name)
+  form.setValue('creator', data.creator)
+  form.setValue('publishedAt', data.publishedAt)
+  form.setValue('gumroadUrl', data.url)
+
+  await setImages(form, setImageUrls, data.imageUrls)
+
+  // 入力された URL ではなく正式な URL で重複を確認する
+  return toDuplicationResult(
+    await commands.getAssetDisplaysByGumroadUrl(data.url),
+  )
+}
+
+const setImages = async (
+  form: AssetFormType,
+  setImageUrls: (imageUrls: string[]) => void,
+  imageUrls: string[],
+) => {
+  setImageUrls(imageUrls)
+  if (imageUrls.length > 0) {
     const imageResolveResult = await commands.resolvePximgFilename(
-      data.imageUrls[0],
+      imageUrls[0],
     )
 
     if (imageResolveResult.status === 'ok') {
       form.setValue('imageFilename', imageResolveResult.data)
     }
   }
+}
 
-  const duplicationCheckResult =
-    await commands.getAssetDisplaysByBoothId(boothItemId)
-
-  if (duplicationCheckResult.status === 'ok') {
-    const duplicationCheckData = duplicationCheckResult.data
-
-    if (duplicationCheckData.length > 0) {
-      return {
-        status: 'ok',
-        data: {
-          goNext: false,
-          duplicated: true,
-          duplicatedItems: duplicationCheckData,
-        },
-      }
-    }
-  }
-
+const toDuplicationResult = (
+  duplicationCheckResult: Result<AssetSummary[], string>,
+): Result<ReturnProps, string> => {
   if (duplicationCheckResult.status === 'error') {
     return {
       status: 'error',
       error: duplicationCheckResult.error,
+    }
+  }
+
+  if (duplicationCheckResult.data.length > 0) {
+    return {
+      status: 'ok',
+      data: {
+        goNext: false,
+        duplicated: true,
+        duplicatedItems: duplicationCheckResult.data,
+      },
     }
   }
 

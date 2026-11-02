@@ -1,10 +1,17 @@
-import { convertToBoothURL, extractBoothItemId } from '@/lib/utils'
+import {
+  convertToBoothURL,
+  extractBoothItemId,
+  isGumroadURL,
+} from '@/lib/utils'
 import { useState, useContext, useEffect, ChangeEvent } from 'react'
 import { AddAssetDialogContext } from '../../../../../AddAssetDialog'
 import { sep } from '@tauri-apps/api/path'
 import { AssetFormType } from '@/lib/form'
 import { useToast } from '@/hooks/use-toast'
-import { getAndSetAssetInfoFromBoothToForm } from '../../logic'
+import {
+  getAndSetAssetInfoFromBoothToForm,
+  getAndSetAssetInfoFromGumroadToForm,
+} from '../../logic'
 import { useLocalization } from '@/hooks/use-localization'
 import { commands, ParsedLine } from '@/lib/bindings'
 import { representativeLinkLabel } from '../../../LinkInputTab/logic'
@@ -22,6 +29,7 @@ type ReturnProps = {
   onUrlInputChange: (e: ChangeEvent<HTMLInputElement>) => void
   fetching: boolean
   boothUrlInput: string
+  canFetch: boolean
   moveToNextTab: () => void
   backToPreviousTab: () => void
 }
@@ -33,7 +41,9 @@ export const useBoothInputTabForAddDialog = ({
 }: Props): ReturnProps => {
   const formBoothItemId = form.getValues('boothItemId')
   const formBoothUrl =
-    formBoothItemId !== null ? convertToBoothURL(formBoothItemId) : ''
+    formBoothItemId !== null
+      ? convertToBoothURL(formBoothItemId)
+      : (form.getValues('gumroadUrl') ?? '')
 
   const [boothItemId, setBoothItemId] = useState(formBoothItemId)
   const [boothUrlInput, setBoothUrlInput] = useState(formBoothUrl)
@@ -83,19 +93,28 @@ export const useBoothInputTabForAddDialog = ({
     setTab('duplicate-warning')
   }
 
+  const canFetch = boothItemId !== null || isGumroadURL(boothUrlInput)
+
   const getAssetDescriptionFromBooth = async () => {
-    if (fetching || boothItemId === null) {
+    if (fetching || !canFetch) {
       return
     }
 
     try {
       setFetching(true)
 
-      const result = await getAndSetAssetInfoFromBoothToForm({
-        boothItemId: boothItemId,
-        form: form,
-        setImageUrls,
-      })
+      const result =
+        boothItemId !== null
+          ? await getAndSetAssetInfoFromBoothToForm({
+              boothItemId: boothItemId,
+              form: form,
+              setImageUrls,
+            })
+          : await getAndSetAssetInfoFromGumroadToForm({
+              gumroadUrl: boothUrlInput,
+              form: form,
+              setImageUrls,
+            })
 
       if (result.status === 'ok') {
         const data = result.data
@@ -156,6 +175,7 @@ export const useBoothInputTabForAddDialog = ({
     onUrlInputChange,
     fetching,
     boothUrlInput,
+    canFetch,
     moveToNextTab,
     backToPreviousTab,
   }

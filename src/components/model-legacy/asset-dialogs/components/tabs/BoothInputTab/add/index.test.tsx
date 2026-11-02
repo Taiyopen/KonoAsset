@@ -32,6 +32,7 @@ describe('BoothInputTab', () => {
     onUrlInputChange,
     fetching: false,
     boothUrlInput: '',
+    canFetch: false,
     moveToNextTab,
     backToPreviousTab,
   }
@@ -74,7 +75,7 @@ describe('BoothInputTab', () => {
     expect(moveToNextTab).toHaveBeenCalledOnce()
 
     const inputTarget = screen.getByPlaceholderText(
-      'https://booth.pm/ja/items/6641548',
+      'https://booth.pm/ja/items/6641548 / https://xxx.gumroad.com/l/xxxx',
     )
 
     // Check input change works correctly
@@ -124,6 +125,7 @@ describe('BoothInputTab', () => {
     mockUseBoothInputTab.mockReturnValueOnce({
       ...base,
       boothUrlInput: 'https://booth.pm/ja/items/1234567',
+      canFetch: true,
     })
 
     render(

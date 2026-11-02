@@ -17,6 +17,14 @@ export function isBoothURL(url: string) {
   )
 }
 
+// バックエンドの gumroad::is_gumroad_url と同じ規則
+const gumroadUrlRegex =
+  /^https:\/\/(?:[0-9a-z-]+\.)?gumroad\.com\/l\/[0-9A-Za-z_-]+\/?(?:\?.*)?$/
+
+export function isGumroadURL(url: string) {
+  return gumroadUrlRegex.test(url)
+}
+
 export const extractBoothItemId = (url: string): Result<number, string> => {
   if (!isBoothURL(url)) {
     return { status: 'error', error: 'Invalid Booth URL specified' }

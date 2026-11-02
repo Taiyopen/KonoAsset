@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { convertToBoothURL, extractBoothItemId, isBoothURL } from './utils'
+import {
+  convertToBoothURL,
+  extractBoothItemId,
+  isBoothURL,
+  isGumroadURL,
+} from './utils'
 
 describe.concurrent('utils', () => {
   it('executes isBoothURL correctly', () => {
@@ -73,5 +78,26 @@ describe.concurrent('utils', () => {
     expect(convertToBoothURL(123)).toBe('https://booth.pm/ja/items/123')
     expect(convertToBoothURL(987654)).toBe('https://booth.pm/ja/items/987654')
     expect(convertToBoothURL(1000)).toBe('https://booth.pm/ja/items/1000')
+  })
+
+  it('executes isGumroadURL correctly', () => {
+    // 正常
+    expect(isGumroadURL('https://bananabread.gumroad.com/l/ajfrt')).toBe(true)
+    expect(isGumroadURL('https://gumroad.com/l/ajfrt')).toBe(true)
+    expect(isGumroadURL('https://bananabread.gumroad.com/l/ajfrt/')).toBe(true)
+    expect(
+      isGumroadURL('https://bananabread.gumroad.com/l/ajfrt?layout=profile'),
+    ).toBe(true)
+    expect(isGumroadURL('https://seller-name.gumroad.com/l/My_Item-2')).toBe(
+      true,
+    )
+
+    // 異常
+    expect(isGumroadURL('http://bananabread.gumroad.com/l/ajfrt')).toBe(false)
+    expect(isGumroadURL('https://bananabread.gumroad.com/')).toBe(false)
+    expect(isGumroadURL('https://bananabread.gumroad.com/l/')).toBe(false)
+    expect(isGumroadURL('https://evilgumroad.com/l/ajfrt')).toBe(false)
+    expect(isGumroadURL('https://gumroad.com.evil.com/l/ajfrt')).toBe(false)
+    expect(isGumroadURL('https://booth.pm/ja/items/6641548')).toBe(false)
   })
 })
