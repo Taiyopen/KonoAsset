@@ -117,7 +117,7 @@ crates/gumroad/
   （`src-backend/tauri/src/command/external/gumroad.rs`）
 - `get_asset_displays_by_gumroad_url(url: String) -> Result<Vec<AssetSummary>, String>`
   （`command/asset/get.rs`，與 `get_asset_displays_by_booth_id` 並列，比對四種素材）
-- `GumroadFetcher` 以 `Mutex` 註冊為 Tauri state，比照 `BoothFetcher`。
+- `GumroadFetcher` 註冊為 Tauri state。因為不做快取、`fetch` 只需 `&self`，不必像 `BoothFetcher` 包 `Mutex`。
 
 ### 3.5 搜尋與匯出
 
