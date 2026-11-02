@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use model::{AssetSummary, SortBy};
+use model::{AssetDescription, AssetSummary, SortBy};
 use storage::asset_storage::AssetStorage;
 use tauri::{State, async_runtime::Mutex};
 use uuid::Uuid;
@@ -180,6 +180,50 @@ pub async fn get_asset_displays_by_booth_id(
                 result.push(AssetSummary::from(asset.clone()));
             }
         });
+
+    Ok(result)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_asset_displays_by_gumroad_url(
+    basic_store: State<'_, Arc<Mutex<AssetStorage>>>,
+    url: String,
+) -> Result<Vec<AssetSummary>, String> {
+    let basic_store = basic_store.lock().await;
+    let is_same_url =
+        |description: &AssetDescription| description.gumroad_url.as_deref() == Some(url.as_str());
+
+    let mut result = Vec::new();
+
+    for asset in basic_store.get_avatar_store().get_all().await.iter() {
+        if is_same_url(&asset.description) {
+            result.push(AssetSummary::from(asset.clone()));
+        }
+    }
+
+    for asset in basic_store
+        .get_avatar_wearable_store()
+        .get_all()
+        .await
+        .iter()
+    {
+        if is_same_url(&asset.description) {
+            result.push(AssetSummary::from(asset.clone()));
+        }
+    }
+
+    for asset in basic_store.get_world_object_store().get_all().await.iter() {
+        if is_same_url(&asset.description) {
+            result.push(AssetSummary::from(asset.clone()));
+        }
+    }
+
+    for asset in basic_store.get_other_asset_store().get_all().await.iter() {
+        if is_same_url(&asset.description) {
+            result.push(AssetSummary::from(asset.clone()));
+        }
+    }
 
     Ok(result)
 }

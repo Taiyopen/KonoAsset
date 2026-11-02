@@ -30,6 +30,14 @@ async getAssetDisplaysByBoothId(boothItemId: number) : Promise<Result<AssetSumma
     else return { status: "error", error: e  as any };
 }
 },
+async getAssetDisplaysByGumroadUrl(url: string) : Promise<Result<AssetSummary[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_asset_displays_by_gumroad_url", { url }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async requestAvatarImport(request: AssetImportRequest<PreAvatar>) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("request_avatar_import", { request }) };
@@ -212,6 +220,14 @@ async resolvePximgFilename(url: string) : Promise<Result<string, string>> {
 async getBoothUrl(id: number) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_booth_url", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAssetInfoFromGumroad(url: string) : Promise<Result<GumroadAssetInfo, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_asset_info_from_gumroad", { url }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -624,6 +640,7 @@ export type FilterElement<T> = { type: "AND"; data: T[] } | { type: "OR"; data: 
 export type FilterRequest = { assetType: AssetType | null; queryText: string | null; categories: FilterElement<FilterRequirement<string>> | null; tags: FilterElement<FilterRequirement<string>> | null; supportedAvatars: FilterElement<FilterRequirement<string>> | null }
 export type FilterRequirement<T> = { type: "Include"; data: T } | { type: "Exclude"; data: T }
 export type GetAssetResult = { assetType: AssetType; avatar: Avatar | null; avatarWearable: AvatarWearable | null; worldObject: WorldObject | null; otherAsset: OtherAsset | null }
+export type GumroadAssetInfo = { url: string; name: string; creator: string; imageUrls: string[]; publishedAt: number }
 export type ImageOptimizationResult = { resized: number; deleted: number }
 export type JobKind = "File" | "Folder"
 export type LanguageCode = "ja-JP" | "en-US" | "en-GB" | "zh-CN" | "zh-TW" | { "user-provided": string }

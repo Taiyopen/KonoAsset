@@ -9,6 +9,8 @@ use crate::{PximgResolveError, PximgResolverValidationError};
 
 use super::client::get_reqwest_client;
 
+const ALLOWED_IMAGE_DOMAINS: [&str; 2] = ["booth.pximg.net", "public-files.gumroad.com"];
+
 type ImageUrl = String;
 type Filename = String;
 
@@ -101,7 +103,7 @@ fn validate_url(url: &str) -> Result<(), PximgResolverValidationError> {
     }
 
     let domain = url.domain();
-    if domain != Some("booth.pximg.net") {
+    if !domain.is_some_and(|domain| ALLOWED_IMAGE_DOMAINS.contains(&domain)) {
         return Err(PximgResolverValidationError::InvalidDomain(format!(
             "{:?}",
             domain
@@ -209,5 +211,25 @@ mod tests {
             validate_url("file://dummy.konoasset.dev/dummy-path.jpg"),
             Err(PximgResolverValidationError::InvalidScheme(_))
         );
+    }
+
+    #[test]
+    fn test_validate_url_allows_gumroad_images() {
+        assert!(
+            validate_url("https://public-files.gumroad.com/3padttruejf2sb7rqp2w2hh0o7vx").is_ok()
+        );
+
+        assert!(matches!(
+            validate_url("https://evil.gumroad.com/x"),
+            Err(PximgResolverValidationError::InvalidDomain(_))
+        ));
+        assert!(matches!(
+            validate_url("https://public-files.gumroad.com.evil.com/x"),
+            Err(PximgResolverValidationError::InvalidDomain(_))
+        ));
+        assert!(matches!(
+            validate_url("http://public-files.gumroad.com/x"),
+            Err(PximgResolverValidationError::InvalidScheme(_))
+        ));
     }
 }

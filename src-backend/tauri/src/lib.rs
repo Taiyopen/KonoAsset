@@ -11,6 +11,7 @@ use download_job::{
     backend::TauriJobBackend, definitions::DownloadJobUpdated, manager::DownloadJobManager,
 };
 use file::modify_guard::{self, FileTransferGuard};
+use gumroad::GumroadFetcher;
 use language::LocalizationData;
 use model::preference::PreferenceStore;
 use state::StateHandler;
@@ -93,6 +94,7 @@ pub fn run() {
             }
         })
         .manage(Mutex::new(BoothFetcher::new(VERSION)))
+        .manage(GumroadFetcher::new(VERSION))
         .manage(ai_suggest::ReqwestTransport::new(VERSION))
         .manage(arc_mutex(LocalizationData::default()))
         .manage(arc_mutex(AssetVolumeStatisticsCache::new()))

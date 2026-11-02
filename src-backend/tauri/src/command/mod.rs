@@ -16,6 +16,7 @@ pub fn generate_tauri_specta_builder() -> Builder<tauri::Wry> {
         asset::get::get_asset,
         asset::get::get_sorted_asset_summaries,
         asset::get::get_asset_displays_by_booth_id,
+        asset::get::get_asset_displays_by_gumroad_url,
         asset::create::request_avatar_import,
         asset::create::request_avatar_wearable_import,
         asset::create::request_world_object_import,
@@ -42,6 +43,7 @@ pub fn generate_tauri_specta_builder() -> Builder<tauri::Wry> {
         external::booth::get_asset_info_from_booth, // BOOTHからアセット情報を取得する
         external::booth::resolve_pximg_filename,
         external::booth::get_booth_url,
+        external::gumroad::get_asset_info_from_gumroad, // Gumroadからアセット情報を取得する
         external::ai_suggest::suggest_asset_fields_with_ai, // AIでアセット情報を提案する
         // アップデート関連
         update::common::check_for_update,

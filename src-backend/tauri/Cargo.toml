@@ -22,6 +22,7 @@ tauri-build.workspace = true
 # Local crates
 ai_suggest.workspace = true
 booth.workspace = true
+gumroad.workspace = true
 changelog.workspace = true
 downloader.workspace = true
 file.workspace = true
