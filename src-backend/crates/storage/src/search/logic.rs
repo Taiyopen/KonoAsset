@@ -296,7 +296,12 @@ fn check_single_text(description: &AssetDescription, text: &str) -> bool {
             .as_ref()
             .map_or(false, |memo| contains_text(&memo.to_ascii_lowercase(), &text)) ||
         // BOOTHのアイテムIDに含まれているかどうか
-        description.booth_item_id.map_or(false, |id| id.to_string().contains(&text));
+        description.booth_item_id.map_or(false, |id| id.to_string().contains(&text)) ||
+        // GumroadのURLに含まれているかどうか
+        description
+            .gumroad_url
+            .as_ref()
+            .map_or(false, |url| contains_text(&url.to_ascii_lowercase(), &text));
 }
 
 fn split_by_space(text: &str) -> Vec<&str> {
@@ -382,6 +387,25 @@ mod tests {
             check_text_contains(&description, &vec!["creator:タグ"]),
             false
         );
+    }
+
+    #[test]
+    fn test_check_text_contains_gumroad_url() {
+        let description = AssetDescription {
+            name: "name".to_string(),
+            creator: "creator".to_string(),
+            image_filename: None,
+            tags: vec![],
+            memo: None,
+            booth_item_id: None,
+            gumroad_url: Some("https://bananabread.gumroad.com/l/ajfrt".to_string()),
+            dependencies: vec![],
+            created_at: 0,
+            published_at: None,
+        };
+
+        assert_eq!(check_text_contains(&description, &vec!["ajfrt"]), true);
+        assert_eq!(check_text_contains(&description, &vec!["zzzz"]), false);
     }
 
     #[test]

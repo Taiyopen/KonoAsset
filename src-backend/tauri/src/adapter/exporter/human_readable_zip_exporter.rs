@@ -50,6 +50,7 @@ where
     for avatar in avatars {
         let name = avatar.asset.description.name;
         let booth_id = avatar.asset.description.booth_item_id;
+        let gumroad_url = avatar.asset.description.gumroad_url;
 
         if let Some(app) = app {
             let percentage = ((processed_assets as f32) / (total_assets as f32)) * 100f32;
@@ -69,7 +70,20 @@ where
                         format!("{}BOOTH.url", item_path).into(),
                         Compression::Stored,
                     ),
-                    &create_link_file_data(booth_id),
+                    &create_link_file_data(&booth_url(booth_id)),
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+
+        if let Some(gumroad_url) = gumroad_url {
+            writer
+                .write_entry_whole(
+                    ZipEntryBuilder::new(
+                        format!("{}GUMROAD.url", item_path).into(),
+                        Compression::Stored,
+                    ),
+                    &create_link_file_data(&gumroad_url),
                 )
                 .await
                 .map_err(|e| e.to_string())?;
@@ -194,6 +208,7 @@ where
     for item in assets {
         let name = item.asset.get_description().name.clone();
         let booth_id = item.asset.get_description().booth_item_id;
+        let gumroad_url = item.asset.get_description().gumroad_url.clone();
 
         callback(name.clone());
 
@@ -208,7 +223,20 @@ where
                         format!("{}BOOTH.url", item_path).into(),
                         Compression::Stored,
                     ),
-                    &create_link_file_data(booth_id),
+                    &create_link_file_data(&booth_url(booth_id)),
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+
+        if let Some(gumroad_url) = gumroad_url {
+            writer
+                .write_entry_whole(
+                    ZipEntryBuilder::new(
+                        format!("{}GUMROAD.url", item_path).into(),
+                        Compression::Stored,
+                    ),
+                    &create_link_file_data(&gumroad_url),
                 )
                 .await
                 .map_err(|e| e.to_string())?;
@@ -262,7 +290,11 @@ where
     Ok(())
 }
 
-fn create_link_file_data(booth_id: u64) -> Vec<u8> {
+fn booth_url(booth_id: u64) -> String {
+    format!("https://booth.pm/ja/items/{}/", booth_id)
+}
+
+fn create_link_file_data(url: &str) -> Vec<u8> {
     let base = "[{000214A0-0000-0000-C000-000000000046}]
 Prop3=19,11
 [InternetShortcut]
@@ -270,7 +302,7 @@ IDList=
 URL=";
 
     let mut data = base.as_bytes().to_vec();
-    data.extend_from_slice(format!("https://booth.pm/ja/items/{}/\n", booth_id).as_bytes());
+    data.extend_from_slice(format!("{}\n", url).as_bytes());
 
     data
 }
@@ -282,6 +314,7 @@ mod tests {
     use super::*;
 
     const BOOTH_SHORTCUT_FILENAME: &str = "BOOTH.url";
+    const GUMROAD_SHORTCUT_FILENAME: &str = "GUMROAD.url";
 
     #[tokio::test]
     async fn test_human_readable_export_fn() {
@@ -304,6 +337,14 @@ mod tests {
         )
         .await
         .unwrap();
+
+        // アバターだけに Gumroad の URL を設定する
+        let avatars_json = format!("{provider}/metadata/avatars.json");
+        let avatars = std::fs::read_to_string(&avatars_json).unwrap().replace(
+            r#""boothItemId": 6641548,"#,
+            r#""boothItemId": 6641548, "gumroadUrl": "https://bananabread.gumroad.com/l/ajfrt","#,
+        );
+        std::fs::write(&avatars_json, avatars).unwrap();
 
         let mut provider = AssetStorage::create(&provider).unwrap();
         provider.load_all_assets_from_files().await.unwrap();
@@ -351,5 +392,24 @@ URL=https://booth.pm/ja/items/6641548/
 "#
             .trim()
         );
+
+        assert_eq!(
+            std::fs::read_to_string(format!("{avatar}/{GUMROAD_SHORTCUT_FILENAME}"))
+                .unwrap()
+                .trim(),
+            r#"
+[{000214A0-0000-0000-C000-000000000046}]
+Prop3=19,11
+[InternetShortcut]
+IDList=
+URL=https://bananabread.gumroad.com/l/ajfrt
+"#
+            .trim()
+        );
+        assert!(
+            !std::fs::exists(format!("{avatar_wearable}/{GUMROAD_SHORTCUT_FILENAME}")).unwrap()
+        );
+        assert!(!std::fs::exists(format!("{world_object}/{GUMROAD_SHORTCUT_FILENAME}")).unwrap());
+        assert!(!std::fs::exists(format!("{other_asset}/{GUMROAD_SHORTCUT_FILENAME}")).unwrap());
     }
 }
