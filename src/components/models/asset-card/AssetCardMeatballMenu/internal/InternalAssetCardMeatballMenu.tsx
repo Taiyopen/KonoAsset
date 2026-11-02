@@ -23,7 +23,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useLocalization } from '@/hooks/use-localization'
-import { cn } from '@/lib/utils'
+import { cn, isGumroadURL } from '@/lib/utils'
 import {
   MoreHorizontal,
   ExternalLink,
@@ -88,7 +88,7 @@ export const InternalAssetCardMeatballMenu: FC<Props> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        {gumroadUrl !== undefined && (
+        {gumroadUrl !== undefined && isGumroadURL(gumroadUrl) && (
           <DropdownMenuItem asChild>
             <a href={gumroadUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="text-card-foreground/40" />

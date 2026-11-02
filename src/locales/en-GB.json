@@ -123,7 +123,7 @@
     "addasset:booth-edit:do-not-change": "Skip",
     "addasset:duplicate-warning": "Duplicate confirmation",
     "addasset:duplicate-warning:explanation-text": "Are you trying to add an already registered asset?",
-    "addasset:duplicate-warning:warning-text": "An asset with the same BOOTH URL already exists!",
+    "addasset:duplicate-warning:warning-text": "An asset with the same product URL already exists!",
     "addasset:duplicate-warning:import-here": "Import here",
     "addasset:duplicate-warning:proceed": "Proceed anyway",
     "addasset:empty-indicator": "Start typing to add",

@@ -31,11 +31,16 @@ vi.mock('@/lib/bindings', () => ({
   },
 }))
 
+const mockForm = {
+  getValues: vi.fn().mockReturnValue(null),
+  setValue: vi.fn(),
+}
+
 const renderAddHook = () =>
   renderHook(() =>
     useBoothInputTabForAddDialog({
       // @ts-expect-error mockForm is not a valid AssetFormType but satisfies the required fields
-      form: { getValues: vi.fn().mockReturnValue(null) },
+      form: mockForm,
       setTab: vi.fn(),
     }),
   )
@@ -83,6 +88,25 @@ describe('BoothInputTab Hook (Gumroad)', () => {
       expect.objectContaining({ boothItemId: 6641548 }),
     )
     expect(getAndSetAssetInfoFromGumroadToForm).not.toHaveBeenCalled()
+  })
+
+  // 新規追加では、前に取得した別プラットフォームのリンクを新しい素材へ持ち越さない
+  it('clears a previously fetched BOOTH link before fetching from Gumroad', async () => {
+    const { result } = renderAddHook()
+
+    typeUrl(result, 'https://bananabread.gumroad.com/l/ajfrt')
+    await result.current.getAssetDescriptionFromBooth()
+
+    expect(mockForm.setValue).toHaveBeenCalledWith('boothItemId', null)
+  })
+
+  it('clears a previously fetched Gumroad link before fetching from BOOTH', async () => {
+    const { result } = renderAddHook()
+
+    typeUrl(result, 'https://booth.pm/ja/items/6641548')
+    await result.current.getAssetDescriptionFromBooth()
+
+    expect(mockForm.setValue).toHaveBeenCalledWith('gumroadUrl', null)
   })
 
   it('cannot fetch a Gumroad profile URL', async () => {

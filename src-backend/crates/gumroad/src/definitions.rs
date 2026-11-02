@@ -32,5 +32,7 @@ pub(crate) struct GumroadSeller {
 pub(crate) struct GumroadCover {
     #[serde(rename = "type")]
     pub cover_type: String,
-    pub url: String,
+    // 1 件の不正な cover で取得全体が失敗しないよう、欠落や null を許容する
+    #[serde(default)]
+    pub url: Option<String>,
 }

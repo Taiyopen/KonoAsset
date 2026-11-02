@@ -103,6 +103,10 @@ export const useBoothInputTabForAddDialog = ({
     try {
       setFetching(true)
 
+      // 前に取得した別プラットフォームのリンクを、別の商品の素材へ持ち越さない
+      // （両方のリンクを持たせたい場合は編集画面で追加する）
+      form.setValue(boothItemId !== null ? 'gumroadUrl' : 'boothItemId', null)
+
       const result =
         boothItemId !== null
           ? await getAndSetAssetInfoFromBoothToForm({

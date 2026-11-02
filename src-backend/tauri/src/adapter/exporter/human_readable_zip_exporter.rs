@@ -301,6 +301,9 @@ Prop3=19,11
 IDList=
 URL=";
 
+    // 取り込んだデータの URL に改行があっても、ショートカットに別の行を追加させない
+    let url: String = url.chars().filter(|c| *c != '\r' && *c != '\n').collect();
+
     let mut data = base.as_bytes().to_vec();
     data.extend_from_slice(format!("{}\n", url).as_bytes());
 
@@ -315,6 +318,15 @@ mod tests {
 
     const BOOTH_SHORTCUT_FILENAME: &str = "BOOTH.url";
     const GUMROAD_SHORTCUT_FILENAME: &str = "GUMROAD.url";
+
+    #[test]
+    fn test_link_file_data_ignores_line_breaks_in_url() {
+        let data = create_link_file_data("https://a.gumroad.com/l/x\r\nIconFile=\\\\host\\share");
+        let text = String::from_utf8(data).unwrap();
+
+        assert_eq!(text.lines().count(), 5);
+        assert!(!text.lines().any(|line| line.starts_with("IconFile=")));
+    }
 
     #[tokio::test]
     async fn test_human_readable_export_fn() {

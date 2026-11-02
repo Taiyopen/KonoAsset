@@ -43,6 +43,12 @@ describe('InternalAssetCardMeatballMenu', () => {
     expect(link?.getAttribute('target')).toBe('_blank')
   })
 
+  it('hides the Gumroad link when gumroadUrl is not a Gumroad product URL', async () => {
+    await openMenu('javascript:alert(1)')
+
+    expect(screen.queryByText('assetcard:more-button:open-gumroad')).toBeNull()
+  })
+
   it('hides the Gumroad link when gumroadUrl is not set', async () => {
     await openMenu()
 

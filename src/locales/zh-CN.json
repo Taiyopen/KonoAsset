@@ -123,7 +123,7 @@
     "addasset:booth-edit:do-not-change": "跳过",
     "addasset:duplicate-warning": "重复确认",
     "addasset:duplicate-warning:explanation-text": "您正在尝试添加已注册的资产",
-    "addasset:duplicate-warning:warning-text": "已存在相同BOOTH链接的资产！",
+    "addasset:duplicate-warning:warning-text": "已存在相同商品链接的资产！",
     "addasset:duplicate-warning:import-here": "导入至此",
     "addasset:duplicate-warning:proceed": "继续添加",
     "addasset:empty-indicator": "开始输入以添加",

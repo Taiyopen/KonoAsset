@@ -2,7 +2,7 @@ use chrono::DateTime;
 
 use crate::{
     GumroadAssetInfo, GumroadInfoFetchError, client::get_reqwest_client,
-    definitions::GumroadJsonSchema, to_json_url,
+    definitions::GumroadJsonSchema, is_gumroad_url, to_json_url, url::to_canonical_url,
 };
 
 pub struct GumroadFetcher {
@@ -25,8 +25,21 @@ impl GumroadFetcher {
         }
 
         let body = response.text().await?;
-        parse_response(&body)
+        let mut info = parse_response(&body)?;
+        info.url = canonical_url(info.url, url)?;
+
+        Ok(info)
     }
+}
+
+/// 保存・リンク・ショートカットに使うため、Gumroad の商品 URL として妥当な値だけを採用する
+/// （独自ドメインなどで妥当でない場合は入力された URL を正規化して使う）
+fn canonical_url(returned: String, input: &str) -> Result<String, GumroadInfoFetchError> {
+    if is_gumroad_url(&returned) {
+        return Ok(returned);
+    }
+
+    to_canonical_url(input)
 }
 
 fn parse_response(body: &str) -> Result<GumroadAssetInfo, GumroadInfoFetchError> {
@@ -37,7 +50,7 @@ fn parse_response(body: &str) -> Result<GumroadAssetInfo, GumroadInfoFetchError>
         .covers
         .into_iter()
         .filter(|cover| cover.cover_type == "image")
-        .map(|cover| cover.url)
+        .filter_map(|cover| cover.url)
         .collect();
 
     if image_urls.is_empty() {
@@ -56,6 +69,47 @@ fn parse_response(body: &str) -> Result<GumroadAssetInfo, GumroadInfoFetchError>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_canonical_url_keeps_returned_gumroad_url() {
+        assert_eq!(
+            canonical_url(
+                "https://bananabread.gumroad.com/l/ajfrt".to_string(),
+                "https://gumroad.com/l/ajfrt?x=1"
+            )
+            .unwrap(),
+            "https://bananabread.gumroad.com/l/ajfrt"
+        );
+    }
+
+    #[test]
+    fn test_canonical_url_falls_back_to_input_for_non_gumroad_url() {
+        assert_eq!(
+            canonical_url(
+                "javascript:alert(1)\r\nIconFile=\\\\host\\share".to_string(),
+                "https://gumroad.com/l/ajfrt?x=1"
+            )
+            .unwrap(),
+            "https://gumroad.com/l/ajfrt"
+        );
+    }
+
+    #[test]
+    fn test_parse_skips_covers_without_url() {
+        let body = body_with(
+            r#", "covers": [
+                { "type": "image", "url": null },
+                { "type": "image" },
+                { "type": "image", "url": "https://public-files.gumroad.com/image" }
+            ]"#,
+        );
+        let info = parse_response(&body).unwrap();
+
+        assert_eq!(
+            info.image_urls,
+            vec!["https://public-files.gumroad.com/image"]
+        );
+    }
 
     #[test]
     fn test_parse_fixture() {

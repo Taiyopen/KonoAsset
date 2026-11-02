@@ -123,7 +123,7 @@
     "addasset:booth-edit:do-not-change": "略過",
     "addasset:duplicate-warning": "重複確認",
     "addasset:duplicate-warning:explanation-text": "你是否正在新增已登錄過的素材？",
-    "addasset:duplicate-warning:warning-text": "已存在設定相同 BOOTH 連結的素材！",
+    "addasset:duplicate-warning:warning-text": "已存在設定相同商品連結的素材！",
     "addasset:duplicate-warning:import-here": "加入到這裡",
     "addasset:duplicate-warning:proceed": "直接繼續",
     "addasset:empty-indicator": "輸入以建立",

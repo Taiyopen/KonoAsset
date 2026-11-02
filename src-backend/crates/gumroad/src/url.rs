@@ -14,6 +14,11 @@ pub fn is_gumroad_url(url: &str) -> bool {
 
 /// 商品 URL を JSON 版の URL に変換する（クエリと末尾の `/` は取り除く）
 pub fn to_json_url(url: &str) -> Result<String, GumroadInfoFetchError> {
+    Ok(format!("{}.json", to_canonical_url(url)?))
+}
+
+/// クエリと末尾の `/` を取り除いた商品 URL
+pub(crate) fn to_canonical_url(url: &str) -> Result<String, GumroadInfoFetchError> {
     let captures = GUMROAD_URL_REGEX
         .captures(url)
         .ok_or_else(|| GumroadInfoFetchError::InvalidUrl(url.to_string()))?;
@@ -23,7 +28,7 @@ pub fn to_json_url(url: &str) -> Result<String, GumroadInfoFetchError> {
         None => "gumroad.com".to_string(),
     };
 
-    Ok(format!("https://{}/l/{}.json", host, &captures[2]))
+    Ok(format!("https://{}/l/{}", host, &captures[2]))
 }
 
 #[cfg(test)]
