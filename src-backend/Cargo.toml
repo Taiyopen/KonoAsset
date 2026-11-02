@@ -16,6 +16,7 @@ booth = { path = "./crates/booth", version = "0.0.0" }
 changelog = { path = "./crates/changelog", version = "0.0.0" }
 downloader = { path = "./crates/downloader", version = "0.0.0" }
 file = { path = "./crates/file", version = "0.0.0" }
+gumroad = { path = "./crates/gumroad", version = "0.0.0" }
 language = { path = "./crates/language", version = "0.0.0" }
 loader = { path = "./crates/loader", version = "0.0.0" }
 logging = { path = "./crates/logging", version = "0.0.0" }

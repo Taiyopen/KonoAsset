@@ -1909,6 +1909,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "gumroad"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "log",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "specta",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "h2"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
