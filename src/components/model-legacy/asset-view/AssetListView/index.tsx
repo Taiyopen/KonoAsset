@@ -38,6 +38,7 @@ export const AssetListView = ({
         <AssetCardMeatballMenu
           id={asset.id}
           boothItemID={asset.boothItemId ?? undefined}
+          gumroadUrl={asset.gumroadUrl ?? undefined}
           openEditAssetDialog={() => openEditAssetDialog(asset.id)}
         />
       </div>

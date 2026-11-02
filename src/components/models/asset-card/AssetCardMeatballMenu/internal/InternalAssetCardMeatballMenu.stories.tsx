@@ -12,6 +12,7 @@ const meta = {
   argTypes: {
     className: { control: 'text' },
     boothUrl: { control: 'text' },
+    gumroadUrl: { control: 'text' },
     openEditAssetDialog: { action: 'openEditAssetDialog' },
     openDataManagementDialog: { action: 'openDataManagementDialog' },
     executeAssetDeletion: { action: 'executeAssetDeletion' },
@@ -44,6 +45,17 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
+  play: async ({ canvas, userEvent }) => {
+    const button = canvas.getByRole('button')
+    await userEvent.click(button)
+  },
+}
+
+export const WithGumroadUrl: Story = {
+  name: 'With Gumroad URL',
+  args: {
+    gumroadUrl: 'https://bananabread.gumroad.com/l/ajfrt',
+  },
   play: async ({ canvas, userEvent }) => {
     const button = canvas.getByRole('button')
     await userEvent.click(button)

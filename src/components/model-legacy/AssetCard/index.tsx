@@ -80,6 +80,7 @@ export const AssetCard = ({ asset, ref, openEditAssetDialog }: Props) => {
           <AssetCardMeatballMenu
             id={asset.id}
             boothItemID={asset.boothItemId ?? undefined}
+            gumroadUrl={asset.gumroadUrl ?? undefined}
             openEditAssetDialog={() => {
               openEditAssetDialog(asset.id)
             }}

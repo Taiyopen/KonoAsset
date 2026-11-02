@@ -38,6 +38,7 @@ import { useInternalAssetCardMeatballMenu } from './hook'
 type Props = {
   className?: string
   boothUrl?: string
+  gumroadUrl?: string
   openEditAssetDialog: () => void
   openDataManagementDialog: () => void
   executeAssetDeletion: () => Promise<void>
@@ -47,6 +48,7 @@ type Props = {
 export const InternalAssetCardMeatballMenu: FC<Props> = ({
   className,
   boothUrl,
+  gumroadUrl,
   openEditAssetDialog,
   openDataManagementDialog,
   executeAssetDeletion,
@@ -86,6 +88,14 @@ export const InternalAssetCardMeatballMenu: FC<Props> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        {gumroadUrl !== undefined && (
+          <DropdownMenuItem asChild>
+            <a href={gumroadUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="text-card-foreground/40" />
+              {t('assetcard:more-button:open-gumroad')}
+            </a>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => openEditAssetDialog()}>
           <Pencil className="text-card-foreground/40" />
           {t('assetcard:more-button:edit-info')}
